@@ -92,14 +92,29 @@ def word_has_stem(word: str, base: str) -> bool:
     """Does an inflected Kazakh `word` derive from `base` (e.g. отбасының <- отбасы)?
 
     Long stems match by prefix; short stems (үй) require the rest to be known endings,
-    so that үй does not match үйрену.
+    so that үй does not match үйрену. Also handles consonant alternations (топ -> тобы).
     """
-    w, s = word.lower(), stem(base)
-    if not w.startswith(s):
-        return False
-    if len(s) >= 4:
-        return True
-    return is_inflection_chain(w[len(s):])
+    w = word.lower()
+    b = base.lower()
+
+    bases = [b]
+    if b.endswith("п"):
+        bases.append(b[:-1] + "б")
+    elif b.endswith("к"):
+        bases.append(b[:-1] + "г")
+    elif b.endswith("қ"):
+        bases.append(b[:-1] + "ғ")
+
+    for cand in bases:
+        s = stem(cand)
+        for prefix in (cand, s):
+            if prefix and w.startswith(prefix):
+                rest = w[len(prefix):]
+                if not rest:
+                    return True
+                if len(prefix) >= 4 or is_inflection_chain(rest):
+                    return True
+    return False
 
 
 _BACK_VOWELS = set("аоұыуяё")

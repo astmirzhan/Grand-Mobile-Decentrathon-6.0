@@ -14,11 +14,11 @@ def test_batches_and_maps_by_id(tmp_path):
 
 
 def test_cache_makes_second_run_free(tmp_path):
-    llm, calls = fake_llm(lambda it, s: {"ok": True}, tmp_path)
+    llm, calls = fake_llm(lambda it, s: {"ok": True}, tmp_path, model="gpt-4.1")
     items = [{"id": "a"}]
     llm.ask(items, "P", SCHEMA)
     cost = llm.usage["cost_usd"]
-    llm2, calls2 = fake_llm(lambda it, s: {"ok": False}, tmp_path)
+    llm2, calls2 = fake_llm(lambda it, s: {"ok": False}, tmp_path, model="gpt-4.1")
     assert llm2.ask(items, "P", SCHEMA) == [{"id": "a", "ok": True}]
     assert calls2 == []
     assert llm2.usage["cached_items"] == 1 and llm2.usage["cost_usd"] == 0
