@@ -28,10 +28,12 @@ VALID_PAIRS = {frozenset(p) for p in [
 # Inconsistent term thresholds
 DOMINANCE_MIN = 0.8    # the canonical translation must cover ≥80% of the term's keys
 RIVAL_ALIGN_MIN = 0.5  # a rival root occurs mostly in strings that translate the same term
-ALT_CLUSTER_MIN = 3    # an alternative used in ≥3 strings is established, not an error
+ALT_CLUSTER_MIN = 3    # an alternative used in ≥3 strings
+ALT_SHARE_MIN = 0.1    # ... and ≥10% of the term's strings is established, not an error
 # Non-strict terms are flagged only when the file is near-unanimous about them.
 NEAR_UNANIMOUS = 0.95
 NEAR_UNANIMOUS_KEYS = 20
+NEAR_UNANIMOUS_MAX_WORDS = 8  # long descriptions often paraphrase a term away
 
 _MARKUP_RE = re.compile(r"\{[^{}]*\}|<[^<>]+>|\\[nt]")
 _STOPWORDS = set("үшін және сіз сіздің бұл мен ал бар жоқ емес болады бойынша арқылы кейін дейін "
@@ -259,26 +261,33 @@ def _analyze_terms(ctx):
         for key in misses:
             src, text = ctx.ru[key], ctx.kk[key]
             sizes = {r: cluster[r] for r, _ in aligned[key]}
-            big = [r for r, n in sizes.items() if n >= ALT_CLUSTER_MIN]
-            rivals = [(r, tok) for r, tok in aligned[key] if 2 <= sizes[r] < ALT_CLUSTER_MIN]
+            big = [r for r, n in sizes.items()
+                   if n >= ALT_CLUSTER_MIN and n / len(keys) >= ALT_SHARE_MIN]
+            rivals = [(r, tok) for r, tok in aligned[key] if sizes[r] >= 2 and r not in big]
             if big and not strict:
                 audit.append({"term": entry["ru"], "kk": entry["kk"], "alternative": big[0],
                               "count": sizes[big[0]], "key": key})
                 continue
             russian = _replace_russian(text, entry)
-            if strict or russian:
-                # Terms the studio fixed explicitly (or a Russian word left untranslated).
+            if strict:
+                # Terms the studio fixed explicitly (фракция, отбасы, Grand Coins, бизнес, варн).
                 allowed = ", ".join(f"«{f}»" for f in gl.kk_forms(entry))
                 findings.append(_finding(
                     key, "glossary_violation", "medium", src, text,
                     f"в исходнике термин «{entry['ru']}», в переводе нет ни одного из вариантов "
                     f"глоссария: {allowed} (по глоссарию переведено {len(hits)} из {len(keys)} строк)",
                     russian, 0.85))
+            elif russian and share >= DOMINANCE_MIN and len(hits) >= 3:
+                findings.append(_finding(
+                    key, "inconsistent_term", "medium", src, text,
+                    f"«{entry['ru']}» в {len(hits)} из {len(keys)} строк переведён как "
+                    f"«{entry['kk']}», здесь оставлено русское слово",
+                    russian, 0.85))
             elif share >= DOMINANCE_MIN and len(hits) >= 3 and (
-                    rivals or (share >= NEAR_UNANIMOUS and len(keys) >= NEAR_UNANIMOUS_KEYS)):
+                    rivals or (share >= NEAR_UNANIMOUS and len(keys) >= NEAR_UNANIMOUS_KEYS
+                               and len(_tokens(text)) <= NEAR_UNANIMOUS_MAX_WORDS)):
                 # The rest of the file agrees on one translation, this string does not.
-                single = [tok for r, tok in aligned[key] if sizes[r] == 1]
-                rival = rivals[0][1] if rivals else (single[0] if len(single) == 1 else None)
+                rival = rivals[0][1] if rivals else None
                 where = f", здесь — «{rival}»" if rival else ", здесь термин переведён иначе"
                 findings.append(_finding(
                     key, "inconsistent_term", "medium", src, text,

@@ -45,14 +45,25 @@ def ru_stem(word: str) -> str:
     return w
 
 
+def _ru_stems(term_word: str) -> list[str]:
+    """Stem plus its fleeting-vowel variant: уровень -> уровен, уровн (уровня)."""
+    s = ru_stem(term_word)
+    stems = [s]
+    if len(s) >= 5 and s[-2] in "еоё" and s[-1] not in "аеёиоуыэюяй":
+        stems.append(s[:-2] + s[-1])
+    return stems
+
+
 def ru_word_matches(word: str, term_word: str) -> bool:
-    w, s = word.lower(), ru_stem(term_word)
-    if _LATIN_WORD.match(s):
-        return w == s
-    if not w.startswith(s):
-        return False
-    rest = w[len(s):]
-    return rest == "" or rest in RU_ENDINGS
+    w = word.lower()
+    for s in _ru_stems(term_word):
+        if _LATIN_WORD.match(s):
+            if w == s:
+                return True
+            continue
+        if w.startswith(s) and (w[len(s):] == "" or w[len(s):] in RU_ENDINGS):
+            return True
+    return False
 
 
 def _phrase_in(text_words: list[str], phrase: str, match) -> bool:

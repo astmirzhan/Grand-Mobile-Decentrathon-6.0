@@ -104,6 +104,12 @@ def test_glossary_violation_russian_word_left_in_kazakh():
     assert f.suggestion == "отбасы балансы"
 
 
+def test_russian_word_for_non_strict_term_is_inconsistent():
+    ctx = _term_ctx({"ru_left": ("Имя игрока", "Игрок аты")})
+    f = by_type(kazakh.check_glossary_terms(ctx), "inconsistent_term")["ru_left"]
+    assert f.suggestion == "Ойыншы аты"
+
+
 def test_glossary_checks_clean_file():
     assert kazakh.check_glossary_terms(_term_ctx({})) == []
 
