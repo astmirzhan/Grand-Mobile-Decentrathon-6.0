@@ -266,20 +266,26 @@ def _analyze_terms(ctx):
                               "count": sizes[big[0]], "key": key})
                 continue
             russian = _replace_russian(text, entry)
-            if rivals and not russian and share >= DOMINANCE_MIN and len(hits) >= 3:
-                rival = rivals[0][1]
-                findings.append(_finding(
-                    key, "inconsistent_term", "medium", src, text,
-                    f"«{entry['ru']}» в {len(hits)} из {len(keys)} строк переведён как "
-                    f"«{entry['kk']}», здесь — «{rival}» (ещё в {sizes[rivals[0][0]] - 1} строке)",
-                    _replace_rival(text, rival, entry["kk"]), 0.8))
-            elif strict or russian or (share >= NEAR_UNANIMOUS and len(keys) >= NEAR_UNANIMOUS_KEYS):
+            if strict or russian:
+                # Terms the studio fixed explicitly (or a Russian word left untranslated).
                 allowed = ", ".join(f"«{f}»" for f in gl.kk_forms(entry))
                 findings.append(_finding(
                     key, "glossary_violation", "medium", src, text,
-                    f"в исходнике термин «{entry['ru']}» (в {len(hits)} из {len(keys)} строк переведён "
-                    f"по глоссарию), здесь нет ни одного из вариантов: {allowed}",
-                    russian, 0.85 if strict or russian else 0.7))
+                    f"в исходнике термин «{entry['ru']}», в переводе нет ни одного из вариантов "
+                    f"глоссария: {allowed} (по глоссарию переведено {len(hits)} из {len(keys)} строк)",
+                    russian, 0.85))
+            elif share >= DOMINANCE_MIN and len(hits) >= 3 and (
+                    rivals or (share >= NEAR_UNANIMOUS and len(keys) >= NEAR_UNANIMOUS_KEYS)):
+                # The rest of the file agrees on one translation, this string does not.
+                single = [tok for r, tok in aligned[key] if sizes[r] == 1]
+                rival = rivals[0][1] if rivals else (single[0] if len(single) == 1 else None)
+                where = f", здесь — «{rival}»" if rival else ", здесь термин переведён иначе"
+                findings.append(_finding(
+                    key, "inconsistent_term", "medium", src, text,
+                    f"«{entry['ru']}» в {len(hits)} из {len(keys)} строк переведён как "
+                    f"«{entry['kk']}»{where}",
+                    _replace_rival(text, rival, entry["kk"]) if rival else None,
+                    0.8 if rivals else 0.6))
             else:
                 continue
             flagged.add(key)
