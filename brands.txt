@@ -1,0 +1,19 @@
+# Brand names and proper nouns that stay untranslated (same_as_source whitelist).
+# One entry per line, case-insensitive.
+Grand Mobile
+Grand Coins
+Grand Chicken
+GC
+VIP
+Premium Pass
+Cargo Coin
+LATAM
+PvP
+Tesla
+Sber
+Discord
+Telegram
+YouTube
+TikTok
+Google Play
+App Store
