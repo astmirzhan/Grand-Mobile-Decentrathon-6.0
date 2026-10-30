@@ -1,0 +1,13 @@
+# данные кейса публиковать нельзя
+data/
+.locqa_cache/
+out/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+.env
+# архив с данными кейса и внутренние документы
+*.tgz
+*.pdf
+*.egg-info/
