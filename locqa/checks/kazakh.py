@@ -135,6 +135,44 @@ _SUFFIX_RE = re.compile(
 )
 
 
+_PLACEHOLDER_RE = re.compile(r"\{(\w+)\}")
+_SEGMENT_END = re.compile(r"[.!?…]*\s*$")
+
+
+def rephrase_without_affix(text: str) -> str | None:
+    """Move an affixed placeholder to the end of its clause after a colon.
+
+    {provider}-ға қосылу мәселесі. Қайталау…  ->  Қосылу мәселесі: {provider}. Қайталау…
+    {price}-ге сатып алу                       ->  Сатып алу: {price}
+
+    Only the simple case is handled: one affixed placeholder per clause, not inside a tag.
+    Anything else returns None and is left to the LLM suggester / human.
+    """
+    hits = list(_SUFFIX_RE.finditer(text))
+    if not hits:
+        return None
+    out = text
+    for m in reversed(hits):
+        start, end = m.start(), m.end()
+        seg_start = max(out.rfind(c, 0, start) for c in ".!?") + 1
+        seg_end = min([i for i in (out.find(c, end) for c in ".!?…") if i != -1] or [len(out)])
+        segment = out[seg_start:seg_end]
+        if "<" in segment or len(_SUFFIX_RE.findall(segment)) != 1:
+            return None
+        before, after = out[seg_start:start], out[end:seg_end]
+        lead = before[: len(before) - len(before.lstrip())]
+        gap = "\n" if "\n" in before[len(before.rstrip()):] else " "
+        body = (before.strip() + gap + after.strip()).strip()
+        if not body:
+            return None
+        if not before.strip():
+            body = body[:1].upper() + body[1:] if not after.strip().isupper() else body
+        out = f"{out[:seg_start]}{lead}{body}: {{{m.group(1)}}}{out[seg_end:]}"
+    if sorted(_PLACEHOLDER_RE.findall(out)) != sorted(_PLACEHOLDER_RE.findall(text)):
+        return None
+    return out
+
+
 def check_suffix_harmony(ctx) -> list[Finding]:
     findings = []
     for key, text in ctx.kk.items():
@@ -156,7 +194,7 @@ def check_suffix_harmony(ctx) -> list[Finding]:
             key, "suffix_harmony", "high", ctx.ru.get(key, ""), text,
             "; ".join(parts) + ". Нужно перефразировать без аффикса после плейсхолдера "
             "или склонять в коде.",
-            None, 0.9))
+            rephrase_without_affix(text), 0.9))
     return findings
 
 

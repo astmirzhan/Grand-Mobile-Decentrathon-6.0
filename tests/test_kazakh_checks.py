@@ -131,3 +131,23 @@ def test_check_entry_point_runs_all():
     ctx = _term_ctx({"s": ("За {price}", "{price}-ға")})
     types = {f.issue_type for f in kazakh.check(ctx)}
     assert "suffix_harmony" in types
+
+
+def test_suffix_rephrase_moves_placeholder_after_colon():
+    r = kazakh.rephrase_without_affix
+    assert r("{provider}-ға қосылу мәселесі. Қайталау…") == "Қосылу мәселесі: {provider}. Қайталау…"
+    assert r("{price}-ге сатып алу") == "Сатып алу: {price}"
+    assert r("Пропусктың\n{id}-ға деңгейі қажет") == "Пропусктың\nдеңгейі қажет: {id}"
+
+
+def test_suffix_rephrase_gives_up_on_hard_cases():
+    r = kazakh.rephrase_without_affix
+    assert r("{fromUser}-дан {toUser}-ға қарсы") is None   # two affixed placeholders in a clause
+    assert r("<g>{bet}-ға GC</g> ставка") is None          # placeholder inside a tag
+    assert r("Ойыншы {name} кірді") is None                # nothing to fix
+
+
+def test_suffix_finding_carries_rephrase():
+    ctx = make_ctx({"a": ("Купить за {price}", "{price}-ге сатып алу")})
+    f = by_type(kazakh.check_suffix_harmony(ctx), "suffix_harmony")["a"]
+    assert f.suggestion == "Сатып алу: {price}"
