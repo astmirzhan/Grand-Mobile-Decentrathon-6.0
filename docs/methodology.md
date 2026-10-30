@@ -22,7 +22,7 @@ Nobody reads the file by eye: native speakers only review what the tool found.
 | Type | Method | Severity | Confidence |
 |---|---|---|---|
 | `orthography` | Word frequency over the kk file. A word with frequency ≤ 2 is a candidate; we try 1–2 swaps from `LETTER_PAIRS` (а→ә, г→ғ, к→қ, н→ң, о→ө, у→ұ/ү, х→һ, и→і). If the variant occurs ≥ 3 times and ≥ 3× more often, it's a typo; the suggestion is the corrected string. Also catches Latin homoglyphs inside Cyrillic words (`бөлімiне`, `көтерілеcің`). | medium | 0.85 / 0.95 |
-| `suffix_harmony` | Regex: placeholder immediately followed by a case/number affix from `SUFFIXES` (`{name}-ға`, `{price}ге`, …). The value is inserted at runtime, so a fixed affix is wrong for half of the values. Ordinals (`{place}-орын`) are not affixes and are not flagged. | high | 0.9 |
+| `suffix_harmony` | Regex: placeholder immediately followed by a case/number affix from `SUFFIXES` (`{name}-ға`, `{price}ге`, …). The value is inserted at runtime, so a fixed affix is wrong for half of the values. Ordinals (`{place}-орын`) are not affixes and are not flagged. Suggestion: the clause is reworded so the placeholder goes after a colon (`{price}-ге сатып алу → Сатып алу: {price}`); hard cases (two placeholders in one clause, placeholder inside a tag) get no suggestion. | high | 0.9 |
 | `glossary_violation` | For *strict* glossary terms (the ones the case names: фракция, отбасы, Grand Coins, бизнес, варн): ru has the term stem, kk has neither the glossary stem nor any `allowed_variants`. If the Russian word was left in kk, the suggestion swaps it for the term. | medium | 0.85 |
 | `inconsistent_term` | For other glossary terms with a dominant translation (≥ 80% of strings): a missing string is flagged if it contains a rival word aligned with the term (occurs mostly in strings with the same ru term), if the Russian word was left as is, or, for short strings (≤ 8 words), if the term is near-unanimous (≥ 95% of ≥ 20 strings). The suggestion re-inflects the canonical term with the rival's affixes (`ойнаушыларды → ойыншыларды`). | medium | 0.6–0.85 |
 
@@ -52,7 +52,7 @@ established variant, not a seeded error. Such cases go to `glossary_audit()` for
 
 `glossary.csv`: `ru, kk, en, comment, allowed_variants, strict`.
 
-* 65+ game terms built from the files themselves: for each Russian term we looked at which Kazakh
+* 104 game terms built from the files themselves: for each Russian term we looked at which Kazakh
   stems co-occur with it across all strings, took the dominant one and checked it by a native speaker.
 * `allowed_variants` (separated by `|`) holds player slang and accepted synonyms:
   *варн, мут, фура, ГК/GC*, *сыйақы/марапат/жүлде* for "награда".
@@ -75,8 +75,8 @@ seeded set), only where ru really contains the term.
 | orthography | 10 | 100% |
 | suffix_harmony | 10 | 100% |
 | glossary_violation | 6 | 100% |
-| inconsistent_term | 10 | 74% (70–80%) |
-| **total** | 36 | **~93%** |
+| inconsistent_term | 10 | 74% (60–90%) |
+| **total** | 36 | **~92%** |
 
 `inconsistent_term` misses are synonyms placed in long descriptions where the rest of the
 sentence gives no statistical signal; we accept this to keep precision high (see below).
@@ -90,11 +90,13 @@ A random sample of findings is labelled by a native speaker: `1` = real error of
 |---|---|---|---|
 | orthography | 19 | TBD | TBD |
 | suffix_harmony | 8 | TBD | TBD |
-| inconsistent_term | 10 | TBD | TBD |
+| inconsistent_term | 14 | TBD | TBD |
 | glossary_violation | 0 | – | – |
 
 Before tuning, the glossary checks produced 116 findings on the real file, mostly legitimate
-paraphrases; after the "established alternative" and strict/non-strict rules — 10.
+paraphrases; after the "established alternative" and strict/non-strict rules — 14
+(rival clusters are counted over distinct texts, so duplicated strings do not create a fake rival).
+Rule-based rewording covers 6 of 8 `suffix_harmony` findings.
 
 ### Native-speaker review
 
