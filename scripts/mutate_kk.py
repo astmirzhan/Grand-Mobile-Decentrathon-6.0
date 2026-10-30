@@ -30,7 +30,7 @@ TO_RUSSIAN = {"ә": "а", "ғ": "г", "қ": "к", "ң": "н", "ө": "о", "ұ": 
 GLOSSARY_SWAPS = {"отбасы": "жанұя", "фракция": "топ", "бизнес": "кәсіп", "ескерту": "сақтандыру"}
 # Synonyms that break consistency of a dominant translation.
 INCONSISTENT_SWAPS = {"ойыншы": "ойнаушы", "тапсырма": "міндет", "дүкен": "магазин",
-                      "деңгей": "дәреже", "жарыс": "жарысу", "кейіпкер": "персонаж"}
+                      "деңгей": "дәреже", "жарыс": "бәйге", "кейіпкер": "персонаж"}
 UZBEK_SAMPLES = ["Sovg'ani oling", "Yangi o'yinchilar", "Do'konga o'tish", "Mukofotni qo'lga kiriting"]
 
 
@@ -60,7 +60,8 @@ def _word_spans(text):
     return [(m.start(), m.end(), m.group()) for m in kk_lang.WORD_RE.finditer(text)]
 
 
-def mutate_orthography(text, rng, freq):
+def mutate_orthography(text, rng, ctx):
+    freq = ctx["freq"]
     words = [(s, e, w) for s, e, w in _word_spans(text)
              if freq[w.lower()] >= 5 and any(ch in TO_RUSSIAN for ch in w.lower())]
     if not words:
@@ -80,23 +81,33 @@ def mutate_suffix(text, rng, _):
     return text[:m.end()] + rng.choice(["-ға", "-ге", "-дан", "-ның"]) + text[m.end():]
 
 
-def _swap(text, table):
+MAX_PER_TERM = 2  # spread mutations over terms, as a real seeded set would be
+
+
+def _swap(text, table, ctx):
+    """Replace a glossary term with a wrong form, only where ru really has that term."""
+    used = ctx["used_terms"]
     for good, bad in table.items():
+        entry = next((g for g in ctx["glossary"] if g["kk"] == good), None)
+        if (entry is None or used[good] >= MAX_PER_TERM
+                or not gl.ru_has_term(ctx["ru"], entry["ru"])):
+            continue
         for s, e, w in _word_spans(text):
             if kk_lang.word_has_stem(w, good):
                 _, affixes = kk_lang.split_affixes(w)
                 new = kk_lang.inflect(bad, affixes)
                 new = new.upper() if w.isupper() else (new.capitalize() if w[0].isupper() else new)
+                used[good] += 1
                 return text[:s] + new + text[e:]
     return None
 
 
-def mutate_glossary(text, rng, _):
-    return _swap(text, GLOSSARY_SWAPS)
+def mutate_glossary(text, rng, ctx):
+    return _swap(text, GLOSSARY_SWAPS, ctx)
 
 
-def mutate_inconsistent(text, rng, _):
-    return _swap(text, INCONSISTENT_SWAPS)
+def mutate_inconsistent(text, rng, ctx):
+    return _swap(text, INCONSISTENT_SWAPS, ctx)
 
 
 def mutate_placeholder(text, rng, _):
@@ -151,14 +162,15 @@ def main(argv=None):
         mutators.update(BASIC_MUTATORS)
 
     # One mutation per key, all injected into one copy of the file (like the seeded set).
-    injected, used = {}, set()
+    injected, used, used_terms = {}, set(), Counter()
     mutated = dict(kk)
     for issue_type, fn in mutators.items():
         pool = [k for k in clean if k not in used]
         rng.shuffle(pool)
         n = 0
         for key in pool:
-            new = fn(kk[key], rng, freq)
+            new = fn(kk[key], rng, {"freq": freq, "ru": ru[key], "glossary": glossary,
+                         "used_terms": used_terms})
             if new is None or new == kk[key]:
                 continue
             mutated[key] = new
