@@ -294,7 +294,9 @@ def _analyze_terms(ctx):
         # How many missing strings share each aligned root: big clusters are an
         # established alternative translation, small ones a stray variant.
         aligned = {k: _aligned_roots(ctx, k, term_set, root_keys, glossary_words) for k in misses}
-        cluster = Counter(r for k in misses for r in {r for r, _ in aligned[k]})
+        # Count distinct texts, so duplicated strings (Step3 / PostStep3) do not form a cluster.
+        cluster = Counter(r for text in {ctx.kk[k]: k for k in misses}.values()
+                          for r in {r for r, _ in aligned[text]})
 
         for key in misses:
             src, text = ctx.ru[key], ctx.kk[key]
