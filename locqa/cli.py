@@ -1,0 +1,162 @@
+from __future__ import annotations
+
+import argparse
+import csv
+import importlib
+import pkgutil
+import sys
+from pathlib import Path
+from typing import Any
+
+import locqa.checks
+from locqa.arb import load_arb
+from locqa.fix import apply_decisions
+from locqa.models import CheckFunc, Context, Finding
+from locqa.report import write_html_report, write_json_report
+from locqa.resolve import resolve_findings
+
+
+def load_glossary_entries(path: str | Path | None) -> list[dict[str, Any]]:
+    candidates = [Path(path)] if path else []
+    candidates.extend([Path("glossary.csv"), Path("data/glossary.csv")])
+    target_path = next((p for p in candidates if p.exists()), None)
+    if not target_path:
+        return []
+
+    try:
+        from locqa import glossary as gl
+        for fn_name in ("load_glossary", "load", "read_glossary"):
+            fn = getattr(gl, fn_name, None)
+            if callable(fn):
+                return fn(target_path)
+    except Exception:
+        pass
+
+    with target_path.open("r", encoding="utf-8-sig", newline="") as f:
+        rows = []
+        for row in csv.DictReader(f):
+            d = dict(row)
+            if "allowed_variants" in d and isinstance(d["allowed_variants"], str):
+                d["allowed_variants"] = [
+                    x.strip() for x in d["allowed_variants"].split("|") if x.strip()
+                ]
+            rows.append(d)
+        return rows
+
+
+def discover_checks(no_llm: bool = False) -> list[tuple[str, CheckFunc]]:
+    discovered: list[tuple[str, CheckFunc]] = []
+    package_path = locqa.checks.__path__
+    prefix = locqa.checks.__name__ + "."
+
+    for _, mod_name, is_pkg in pkgutil.iter_modules(package_path, prefix):
+        if is_pkg:
+            continue
+        if no_llm and mod_name.endswith(".llm_checks"):
+            continue
+        module = importlib.import_module(mod_name)
+        check_fn = getattr(module, "check", None)
+        if callable(check_fn):
+            discovered.append((mod_name, check_fn))
+
+    return discovered
+
+
+def cmd_check(args: argparse.Namespace) -> int:
+    ru_doc = load_arb(args.source)
+    kk_doc = load_arb(args.target)
+    uz_doc = load_arb(args.uz) if args.uz and Path(args.uz).exists() else None
+    en_doc = load_arb(args.en) if args.en and Path(args.en).exists() else None
+
+    ctx = Context(
+        ru=ru_doc.values,
+        kk=kk_doc.values,
+        en=en_doc.values if en_doc else {},
+        uz=uz_doc.values if uz_doc else {},
+        order=ru_doc.order,
+        descriptions=ru_doc.descriptions,
+        sections=ru_doc.sections,
+        glossary=load_glossary_entries(args.glossary),
+        meta=ru_doc.meta,
+        no_llm=args.no_llm,
+    )
+
+    all_findings: list[Finding] = []
+    for mod_name, check_fn in discover_checks(no_llm=args.no_llm):
+        try:
+            res = check_fn(ctx)
+            if res:
+                all_findings.extend(res)
+                print(f"[OK] {mod_name}: найдено {len(res)}")
+        except Exception as exc:
+            print(f"[ERROR] Ошибка в модуле проверки {mod_name}: {exc}", file=sys.stderr)
+
+    resolved = resolve_findings(all_findings, key_order=ru_doc.order)
+
+    out_arg = Path(args.out)
+    if out_arg.suffix.lower() == ".json":
+        json_path = out_arg
+        html_path = out_arg.with_suffix(".html")
+    elif out_arg.suffix.lower() == ".html":
+        html_path = out_arg
+        json_path = out_arg.with_suffix(".json")
+    else:
+        out_arg.mkdir(parents=True, exist_ok=True)
+        json_path = out_arg / "report.json"
+        html_path = out_arg / "report.html"
+
+    json_path.parent.mkdir(parents=True, exist_ok=True)
+    write_json_report(resolved, json_path)
+    write_html_report(resolved, html_path)
+
+    print(f"Итого после дедупликации (resolve): {len(resolved)} проблем. Отчёты: {json_path}, {html_path}")
+    return 0
+
+
+def cmd_fix(args: argparse.Namespace) -> int:
+    applied, skipped = apply_decisions(
+        decisions_csv=args.decisions,
+        target_arb=args.target,
+        out_arb=args.out,
+        source_arb=args.source,
+        default_reviewer=args.reviewer,
+        fallback_meta=args.fallback_meta,
+    )
+    print(f"Применено правок: {applied}, пропущено/отклонено защитой: {skipped}. Результат: {args.out}")
+    return 0
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="locqa", description="Flutter ARB Localization QA & Fixer")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    p_check = subparsers.add_parser("check", help="Запустить проверки локализации")
+    p_check.add_argument("--source", required=True, help="Путь к исходному ARB (intl_ru.arb)")
+    p_check.add_argument("--target", required=True, help="Путь к целевому ARB (intl_kk.arb)")
+    p_check.add_argument("--uz", default=None, help="Путь к узбекскому ARB (intl_uz.arb)")
+    p_check.add_argument("--en", default=None, help="Путь к английскому ARB (intl_en.arb)")
+    p_check.add_argument("--glossary", default=None, help="Путь к glossary.csv")
+    p_check.add_argument("--out", default="report.json", help="Путь к выходному файлу/папке отчёта")
+    p_check.add_argument("--no-llm", action="store_true", help="Отключить LLM-проверки")
+    p_check.set_defaults(func=cmd_check)
+
+    p_fix = subparsers.add_parser("fix", help="Применить ревью-решения из CSV к ARB")
+    p_fix.add_argument("--decisions", required=True, help="Путь к decisions.csv")
+    p_fix.add_argument("--target", required=True, help="Путь к исходному intl_kk.arb")
+    p_fix.add_argument("--out", required=True, help="Путь для сохранения intl_kk_fixed.arb")
+    p_fix.add_argument("--source", default=None, help="Путь к intl_ru.arb")
+    p_fix.add_argument("--reviewer", default="A", help="Код ревьюера (по умолчанию A)")
+    p_fix.add_argument("--fallback-meta", action="store_true", help="Использовать @@x-reviewed вместо @key")
+    p_fix.set_defaults(func=cmd_fix)
+
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

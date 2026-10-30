@@ -1,0 +1,16 @@
+data/
+*.arb
+!tests/fixtures/*.arb
+!tests/fixtures/**/*.arb
+
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+l10n_test/
+report.json
+report.html
