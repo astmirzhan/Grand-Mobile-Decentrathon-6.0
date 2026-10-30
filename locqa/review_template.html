@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>locqa — разметка</title>
+<style>
+:root{--bg:#f6f6f3;--card:#fff;--ink:#1d1d1b;--mute:#6f6f69;--line:#e3e2dc;--ok:#1f7a4d;--okbg:#e6f4ec;--bad:#b3362b;--badbg:#fbeae8;--edit:#2456b8;--editbg:#e8eefb;--warn:#8a6100;--warnbg:#fbf2d9}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+button{font:inherit;cursor:pointer}button:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--edit);outline-offset:2px}
+.top{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);padding:10px 16px}
+.top-in{max-width:860px;margin:auto;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.top b{font-size:15px}.count{color:var(--mute);font-size:14px;margin-left:auto}
+.bar{height:4px;background:var(--line);margin-top:8px;max-width:860px;margin-inline:auto;border-radius:2px;overflow:hidden}.bar i{display:block;height:100%;background:var(--ok);width:0}
+select{font:inherit;font-size:14px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;background:#fff}
+main{max-width:860px;margin:18px auto 60px;padding:0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px}
+.badges{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.badge{font-size:13px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--editbg);color:var(--edit)}.badge.high{background:var(--badbg);color:var(--bad)}.badge.medium{background:var(--warnbg);color:var(--warn)}.badge.low{background:#eee;color:var(--mute)}
+.key{font:12px ui-monospace,Menlo,monospace;color:var(--mute);word-break:break-all}
+.hint{color:var(--mute);font-size:14px;margin:0 0 14px}
+.row{margin-top:14px}.lbl{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--mute);margin-bottom:3px}
+.txt{white-space:pre-wrap;word-break:break-word;font-size:18px}.txt.sm{font-size:15px;color:var(--mute)}
+.box{padding:10px 12px;border-radius:8px;border:1px solid var(--line)}.box.cur{background:#fafaf7}.box.sug{background:var(--okbg);border-color:#bfe3cd}
+del{background:var(--badbg);color:var(--bad);text-decoration:line-through;border-radius:3px}ins{background:#c9eed8;text-decoration:none;border-radius:3px}
+.why{margin-top:14px;padding:10px 12px;background:var(--warnbg);border-radius:8px;font-size:14px}
+details{margin-top:12px;font-size:14px;color:var(--mute)}summary{cursor:pointer}details table{border-collapse:collapse;width:100%;margin-top:6px}details td{padding:3px 6px;border-top:1px solid var(--line);vertical-align:top}
+.actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:18px}
+.btn{padding:12px 8px;border-radius:8px;border:1px solid var(--line);background:#fff;font-weight:600;min-height:48px}.btn small{display:block;font-weight:400;font-size:12px;color:var(--mute)}
+.btn.ok{background:var(--okbg);border-color:#bfe3cd;color:var(--ok)}.btn.edit{background:var(--editbg);border-color:#c7d6f5;color:var(--edit)}.btn.bad{background:var(--badbg);border-color:#f2cdc9;color:var(--bad)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}.btn.on{outline:3px solid currentColor;outline-offset:1px}
+.minor{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-top:12px;font-size:14px;color:var(--mute)}.minor label{display:flex;gap:6px;align-items:center;cursor:pointer}
+.link{background:none;border:0;color:var(--edit);padding:4px 0;text-decoration:underline}
+.nav{display:flex;justify-content:space-between;margin-top:14px}.nav .btn{min-height:40px;padding:6px 14px}
+textarea{width:100%;font:18px/1.5 inherit;font-family:inherit;padding:10px;border:1px solid var(--edit);border-radius:8px;min-height:90px;margin-top:6px}
+.err{color:var(--bad);font-size:14px;margin-top:4px;min-height:20px}
+.state{margin-top:10px;font-size:14px;font-weight:600}
+.start{text-align:center;padding:40px 20px}.start h1{font-size:24px;margin:0 0 6px}.who{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:22px 0}.who .btn{min-width:150px}
+.rules{text-align:left;max-width:520px;margin:18px auto 0;font-size:15px;color:var(--mute)}.rules li{margin:4px 0}
+.keys{font-size:13px;color:var(--mute);margin-top:14px}kbd{font:12px ui-monospace,Menlo,monospace;background:#efeee9;border:1px solid var(--line);border-radius:4px;padding:0 5px}
+@media(max-width:560px){.actions{grid-template-columns:1fr}.txt{font-size:17px}}
+</style></head><body>
+<div id="app"></div>
+<script id="data" type="application/json">/*DATA*/</script>
+<script>
+"use strict";
+const DATA=JSON.parse(document.getElementById("data").textContent);
+const ROWS=DATA.rows,STORE="locqa-review-"+DATA.version;
+const TYPES={untranslated:"Нет перевода",same_as_source:"Осталось по-русски",wrong_language:"Другой язык",placeholder_mismatch:"Сломан {плейсхолдер}",plural_mismatch:"Сломано мн. число",suffix_harmony:"Аффикс после {плейсхолдера}",orthography:"Опечатка",glossary_violation:"Не по глоссарию",inconsistent_term:"Разные переводы термина",length_overflow:"Слишком длинно",machine_translation_suspect:"Плохой перевод"};
+const HINT={untranslated:"Строки нет в казахском файле.",same_as_source:"Текст совпадает с русским. Бренды, имена и общепринятые слова — не ошибка.",wrong_language:"Здесь текст не на казахском.",placeholder_mismatch:"Имена в {скобках} должны совпадать с русским.",suffix_harmony:"Окончание приклеено к {подстановке}: при другом значении оно будет неверным.",orthography:"Проверьте написание слова.",glossary_violation:"Игровой термин переведён не так, как договорились.",inconsistent_term:"Этот термин в других строках переведён иначе.",length_overflow:"Короткая кнопка или заголовок: лишний текст не влезет.",machine_translation_suspect:"Звучит не по-казахски или говорит не то, что в русском."};
+let S=load(),who=null,list=[],pos=0,filter="",editing=false;
+function load(){try{return JSON.parse(localStorage.getItem(STORE))||{}}catch(e){return{}}}
+function save(){try{localStorage.setItem(STORE,JSON.stringify(S))}catch(e){alertBox("Браузер не сохраняет прогресс. Скачивайте файл чаще.")}}
+function alertBox(t){const a=document.querySelector(".state");if(a)a.textContent=t}
+const el=(t,c,x)=>{const n=document.createElement(t);if(c)n.className=c;if(x!==undefined)n.textContent=x;return n};
+const id=r=>r.key+"|"+r.issue_type;
+const decided=r=>{const s=S[id(r)];return !!(s&&s.dec)};
+const ph=t=>(t.match(/\{\w+\}/g)||[]).sort().join(" ");
+function rebuild(){list=ROWS.filter(r=>(who==="all"||r.reviewer===who)&&(!filter||r.issue_type===filter))}
+function nextOpen(from){for(let i=from;i<list.length;i++)if(!decided(list[i]))return i;for(let i=0;i<from;i++)if(!decided(list[i]))return i;return -1}
+function tokens(s){return s.match(/\s+|[^\s]+/g)||[]}
+function diff(a,b){const x=tokens(a),y=tokens(b),n=x.length,m=y.length;const d=Array.from({length:n+1},()=>new Uint16Array(m+1));
+for(let i=n-1;i>=0;i--)for(let j=m-1;j>=0;j--)d[i][j]=x[i]===y[j]?d[i+1][j+1]+1:Math.max(d[i+1][j],d[i][j+1]);
+const o=document.createDocumentFragment();let i=0,j=0;
+while(i<n||j<m){if(i<n&&j<m&&x[i]===y[j]){o.append(x[i]);i++;j++}else if(j<m&&(i>=n||d[i][j+1]>=d[i+1][j])){o.append(el("ins","",y[j]));j++}else{o.append(el("del","",x[i]));i++}}return o}
+function start(){const a=document.getElementById("app");a.replaceChildren();const m=el("main");const c=el("div","card start");c.append(el("h1","","Разметка казахского перевода"),el("p","hint","Выберите свою часть. Прогресс сохраняется в этом браузере сам."));
+const w=el("div","who");for(const p of DATA.reviewers){const n=ROWS.filter(r=>r.reviewer===p).length,d=ROWS.filter(r=>r.reviewer===p&&decided(r)).length;const b=el("button","btn");b.append("Проверяющий "+p,el("small","",d+" из "+n));b.onclick=()=>{who=p;filter="";rebuild();pos=Math.max(nextOpen(0),0);render()};w.append(b)}
+c.append(w);const u=el("ul","rules");for(const t of ["Верно: находка правильная, предложенный вариант хороший.","Свой вариант: ошибка есть, но предложение плохое.","Не ошибка: сейчас в игре всё нормально.","Сомневаетесь — «Не уверен(а)»: строка останется как есть.","В конце нажмите «Скачать результат» и отправьте файл команде."])u.append(el("li","",t));c.append(u);m.append(c);a.append(m)}
+function setv(r,dec,extra){const k=id(r);const old=S[k]||{};S[k]=Object.assign({wrongType:old.wrongType||false,note:old.note||""},{dec},extra||{},{at:Date.now()});save()}
+function next(){const n=nextOpen(pos+1>=list.length?0:pos+1);if(n<0){done();return}pos=n;editing=false;render()}
+function exportCsv(){const cols=["id","key","issue_type","severity","ru","en","kk_сейчас","evidence","suggestion","решение","итоговый_текст","кто_проверил","verdict","reviewer","note"];
+const q=v=>{v=v==null?"":String(v);return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+const rows=ROWS.filter(r=>who==="all"||r.reviewer===who);const lines=[cols.join(",")];
+for(const r of rows){const s=S[id(r)];let dec="",fin="",ver="";if(s&&s.dec){if(s.dec==="ok"){dec="✅";ver=s.wrongType?"t":"1"}else if(s.dec==="edit"){dec="✏";fin=s.text;ver=s.wrongType?"t":"1"}else if(s.dec==="bad"){dec="❌";ver="0"}else dec="❌"}
+lines.push([r.id,r.key,r.issue_type,r.severity,r.ru,r.en,r.kk,r.evidence,r.suggestion,dec,fin,who,ver,who,s&&s.note||""].map(q).join(","))}
+const blob=new Blob(["﻿"+lines.join("\n")+"\n"],{type:"text/csv;charset=utf-8"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="review_"+who+"_done.csv";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
+function done(){const a=document.getElementById("app");a.replaceChildren(topbar());const m=el("main");const c=el("div","card start");c.append(el("h1","","Часть "+who+" готова"),el("p","hint","Скачайте файл и отправьте его команде."));
+const b=el("button","btn ok","Скачать результат");b.onclick=exportCsv;const l=el("button","link","Вернуться к строкам");l.onclick=()=>{pos=0;render()};c.append(b,el("br"),l);m.append(c);a.append(m)}
+function topbar(){const t=el("div","top"),i=el("div","top-in");const back=el("button","link","← Сменить часть");back.onclick=start;
+const f=document.createElement("select");f.setAttribute("aria-label","Фильтр по типу");f.append(new Option("Все типы",""));for(const k of [...new Set(ROWS.map(r=>r.issue_type))])f.append(new Option(TYPES[k]||k,k));f.value=filter;f.onchange=()=>{filter=f.value;rebuild();pos=Math.max(nextOpen(0),0);render()};
+const all=ROWS.filter(r=>r.reviewer===who),d=all.filter(decided).length;const e=el("button","link","Скачать результат");e.onclick=exportCsv;
+i.append(back,f,e,el("span","count",d+" из "+all.length));const bar=el("div","bar"),fill=el("i");fill.style.width=(all.length?100*d/all.length:0)+"%";bar.append(fill);t.append(i,bar);return t}
+function field(lbl,txt,cls){const r=el("div","row");r.append(el("div","lbl",lbl));const b=el("div",cls||"");if(typeof txt==="string")b.textContent=txt;else b.append(txt);r.append(b);return r}
+function render(){const a=document.getElementById("app");a.replaceChildren(topbar());const m=el("main");
+if(!list.length){m.append(el("div","card start","Здесь нет строк."));a.append(m);return}
+const r=list[pos],s=S[id(r)];const c=el("div","card");
+const bs=el("div","badges");bs.append(el("span","badge "+r.severity,TYPES[r.issue_type]||r.issue_type));bs.append(el("span","key",(r.section?r.section+" · ":"")+r.key));c.append(bs,el("p","hint",HINT[r.issue_type]||""));
+c.append(field("Русский оригинал",r.ru||"(пусто)","txt"));if(r.en)c.append(field("English",r.en,"txt sm"));
+c.append(field("Сейчас в игре",r.kk||"(нет перевода)","txt box cur"));
+if(r.suggestion)c.append(field("Предложение",diff(r.kk,r.suggestion),"txt box sug"));else c.append(field("Предложение","Варианта нет: нужен свой текст или «Не ошибка».","txt sm"));
+c.append(el("div","why","Почему отмечено: "+r.evidence));
+if(r.near&&r.near.length){const d=document.createElement("details");d.append(el("summary","","Соседние строки"));const t=document.createElement("table");for(const n of r.near){const tr=document.createElement("tr");tr.append(el("td","",n.ru),el("td","",n.kk));t.append(tr)}d.append(t);c.append(d)}
+const act=el("div","actions");
+const ok=el("button","btn ok"+(s&&s.dec==="ok"?" on":""));ok.append("Верно",el("small","","принять · клавиша 1"));ok.disabled=!r.suggestion;ok.onclick=()=>{setv(r,"ok");next()};
+const ed=el("button","btn edit"+(s&&s.dec==="edit"?" on":""));ed.append("Свой вариант",el("small","","клавиша 2"));ed.onclick=()=>{editing=true;render()};
+const no=el("button","btn bad"+(s&&s.dec==="bad"?" on":""));no.append("Не ошибка",el("small","","клавиша 3"));no.onclick=()=>{setv(r,"bad");next()};act.append(ok,ed,no);c.append(act);
+if(editing){const w=el("div","row");const ta=document.createElement("textarea");ta.setAttribute("aria-label","Свой вариант");ta.value=(s&&s.text)||r.suggestion||r.kk;const er=el("div","err");const sv=el("button","btn edit","Сохранить");
+const chk=()=>{const bad=ph(ta.value)!==ph(r.ru);er.textContent=!ta.value.trim()?"Пустой текст.":bad?"Плейсхолдеры должны быть как в русском: "+(ph(r.ru)||"без плейсхолдеров"):"";sv.disabled=!!er.textContent};
+ta.oninput=chk;sv.onclick=()=>{setv(r,"edit",{text:ta.value.trim()});next()};w.append(ta,er,sv);c.append(w);chk();setTimeout(()=>ta.focus(),0)}
+const mi=el("div","minor");const un=el("button","link","Не уверен(а) · клавиша 4");un.onclick=()=>{setv(r,"skip");next()};
+const lb=el("label");const cb=document.createElement("input");cb.type="checkbox";cb.checked=!!(s&&s.wrongType);cb.onchange=()=>{S[id(r)]=Object.assign(S[id(r)]||{dec:"",note:""},{wrongType:cb.checked});save()};lb.append(cb,"Ошибка есть, но тип другой");mi.append(un,lb);c.append(mi);
+c.append(el("div","state",s&&s.dec?"Решение: "+({ok:"верно",edit:"свой вариант",bad:"не ошибка",skip:"не уверен(а)"})[s.dec]:""));
+const n=el("div","nav");const p=el("button","btn","← Назад");p.disabled=pos===0;p.onclick=()=>{pos--;editing=false;render()};const q=el("button","btn","Дальше →");q.disabled=pos>=list.length-1;q.onclick=()=>{pos++;editing=false;render()};n.append(p,el("span","key",(pos+1)+" / "+list.length),q);c.append(n);
+c.append(el("div","keys","Клавиши: 1 верно, 2 свой вариант, 3 не ошибка, 4 не уверен(а), ← → листать"));m.append(c);a.append(m)}
+document.addEventListener("keydown",e=>{if(!who||e.metaKey||e.ctrlKey||e.altKey)return;const t=e.target.tagName;if(t==="TEXTAREA"){if(e.key==="Escape"){editing=false;render()}return}if(!list.length||!list[pos])return;const r=list[pos];
+if(e.key==="1"&&r.suggestion){setv(r,"ok");next()}else if(e.key==="2"){editing=true;render()}else if(e.key==="3"){setv(r,"bad");next()}else if(e.key==="4"){setv(r,"skip");next()}else if(e.key==="ArrowLeft"&&pos>0){pos--;editing=false;render()}else if(e.key==="ArrowRight"&&pos<list.length-1){pos++;editing=false;render()}});
+start();
+</script></body></html>
