@@ -15,6 +15,9 @@
 | `locqa/glossary.py` | загрузка глоссария и поиск термина по основе слова в ru и kk |
 | `locqa/checks/kazakh.py` | 4 проверки: `orthography`, `suffix_harmony`, `glossary_violation`, `inconsistent_term` |
 | `locqa/lang/translit.py` | транслитерация в казахскую латиницу (алфавит 2021 года) |
+| `locqa/lang/kk_runtime.py` + `integrations/flutter/kk_affix` | правильное окончание для подставляемого значения во время игры (Python и Dart) |
+| `locqa/lang/plural.py` | формы множественного числа по языкам (CLDR): `...Few/...Many` не нужны в казахском |
+| `scripts/compare_baselines.py` | сравнение с готовыми линтерами и базовыми правилами на одних данных |
 | `scripts/mutate_kk.py` | recall: вносит известные ошибки и проверяет, найдены ли они с правильным типом |
 | `scripts/precision_sample.py` | precision: выборка находок для ручной разметки и подсчёт |
 | `scripts/translit_kk.py` | ARB в латиницу + список строк, которые стали заметно длиннее |
@@ -113,8 +116,31 @@ python scripts/precision_sample.py score sample.csv
 сломанный плейсхолдер, пустая строка, узбекский текст.
 
 Текущие цифры (полный пайплайн, 3 сида): recall **99%** (97–100%) по всем 11 типам ошибок,
-на чистом казахском переводе Flutter (203 строки) **0 ложных тревог**. Precision будет
-посчитан после разметки носителем.
+на чистом казахском переводе Flutter (203 строки) казахские проверки дали **0 ложных тревог**.
+Precision будет посчитан после разметки носителем.
+
+### Сравнение с альтернативами
+
+Одни и те же внесённые ошибки, один реальный файл, один чистый файл Flutter:
+
+| Инструмент | Recall | Типов ошибок | Находок в файле игры | Находок в чистом файле |
+|---|---|---|---|---|
+| Готовый линтер (структура) | 20% | 3 из 11 | 28 | 0 |
+| Базовые правила | 30% | 11 из 11 | 77 | 4 |
+| **locqa без LLM** | **98%** | 11 из 11 | 135 | 6 (2 — настоящие ошибки Flutter) |
+
+```bash
+python scripts/compare_baselines.py --source intl_ru.arb --target intl_kk.arb --glossary glossary.csv \
+    --en intl_en.arb --uz intl_uz.arb \
+    --clean-source material_ru.arb --clean-target material_kk.arb --seeds 7,11,23
+```
+
+## Окончания во время игры (`kk_affix`)
+
+Вместо перефразирования строк с `{name}-ға` игра может склонять значение сама:
+`kkInflect('Айдос', KkCase.dative)` → `Айдосқа`, `kkInflect('100', KkCase.dative)` → `100-ге`.
+Пакет на Dart лежит в `integrations/flutter/kk_affix`, Python-версия в `locqa/lang/kk_runtime.py`,
+обе сверяются на 343 общих примерах. Подробнее в [README пакета](../integrations/flutter/kk_affix/README.md).
 
 ## Бонус: латиница
 

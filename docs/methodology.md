@@ -108,6 +108,29 @@ changes and reported 2 findings, both real errors in Flutter's translation: Lati
 *«тыc»* and Latin `M` in *«Mинут»*. **0 false alarms.** The statistical checks need a large file
 to work, so on 200 strings only the deterministic part fires, which is the expected behaviour.
 
+### Comparison with alternatives (`scripts/compare_baselines.py`)
+
+All tools get exactly the same injected errors (11 variants, 8 each, 3 seeds), the same real
+file and the same clean third-party file (Flutter's Kazakh localizations, 203 strings).
+"Structural linter" is what ready-made Flutter ARB linters check (missing strings,
+placeholders, plurals).
+
+| Tool | Recall, typed | Issue types | Findings on real file | Findings on clean file |
+|---|---|---|---|---|
+| Structural linter | 20% | 3 of 11 | 28 | 16 → 0* |
+| Basic rules (any language) | 30% | 11 of 11 | 77 | 20 → 4* |
+| **locqa, no LLM** | **98%** (96–99%) | 11 of 11 | 135 | 22 → 6* |
+
+\* with `locqa/lang/plural.py`: Flutter stores plural forms as separate keys
+(`...Few`, `...Many`). Russian has these forms, Kazakh does not (CLDR: one, other), so their
+absence is not a missing translation. 16 of the 22 clean-file findings were such keys. Of the
+remaining 6, two are real errors in Flutter's translation (Latin letters), three are English
+key names left untranslated (`Eject`, `Select`, `Num Enter`), one is a loanword (*1 лицензия*).
+
+An "LLM only" baseline (re-translate or re-check every string) is not in the table: it needs a
+paid API run over 5,500 strings, and the case brief rules it out as a solution. LLM checks in
+locqa run only on top of these results; their cost is reported by the pipeline.
+
 ### Precision: manual labelling (`scripts/precision_sample.py`)
 
 A random sample of findings is labelled by a native speaker: `1` = real error of this type,
