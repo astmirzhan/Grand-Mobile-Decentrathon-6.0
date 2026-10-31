@@ -134,3 +134,13 @@ def test_fix_accepts_decisions_csv_from_sheet_import(tmp_path: Path) -> None:
     applied, _ = apply_decisions(decisions, arb, out)
     text = out.read_text(encoding="utf-8")
     assert applied == 1 and '"buy": "қате"' in text and '"x-reviewed": true' in text
+
+
+def test_unused_plural_form_is_not_untranslated() -> None:
+    ctx = Context(
+        ru={"hourOne": "час", "hourFew": "часа", "hourOther": "часов", "title": "Магазин"},
+        kk={"hourOne": "сағат", "hourOther": "сағат"},
+        order=["hourOne", "hourFew", "hourOther", "title"],
+    )
+    untranslated = {f.key for f in basic_check(ctx) if f.issue_type == "untranslated"}
+    assert untranslated == {"title"}

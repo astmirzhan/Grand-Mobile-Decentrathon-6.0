@@ -9,6 +9,7 @@ from locqa.icu import (
     has_icu_complex,
     validate_plural,
 )
+from locqa.lang.plural import is_unused_plural_key
 from locqa.models import Context, Finding, compute_severity
 
 _CYRILLIC_RE = re.compile(r"[а-яёА-ЯЁәіңғүұқөһӘІҢҒҮҰҚӨҺ]")
@@ -314,6 +315,9 @@ def check(ctx: Context) -> list[Finding]:
         desc = ctx.descriptions.get(key, "")
 
         # 1. untranslated
+        # формы вроде ...Few есть в ru, но не нужны языку с категориями one и other
+        if key not in ctx.kk and is_unused_plural_key(key, ctx.kk):
+            continue
         if key not in ctx.kk or not kk_val.strip():
             reason = "Ключ отсутствует в файле kk" if key not in ctx.kk else "Пустая строка перевода в kk"
             findings.append(
