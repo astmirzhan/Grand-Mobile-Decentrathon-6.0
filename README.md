@@ -77,8 +77,17 @@ locqa fix --decisions out/decisions.csv --target intl_kk.arb --source intl_ru.ar
 
 Измеряем сами, потому что валидационной выборки нет.
 
-- **Recall:** мутационный тест вносит известные ошибки и проверяет, найдены ли они с правильным типом: `python scripts/mutate_kk.py --source intl_ru.arb --target intl_kk.arb --glossary glossary.csv --seed 7`. Результаты в `docs/methodology.md`.
-- **Precision:** ручная разметка, `python scripts/precision_sample.py score review_A_done.csv`. Цифры появятся после ревью носителями.
+Те же внесённые ошибки на файле кейса, 3 прогона, засчитывается только правильный тип:
+
+| Инструмент | Recall | Типов из 11 |
+|---|---|---|
+| Структурный линтер ARB | 20% | 3 |
+| Базовые правила | 30% | 11 |
+| **locqa без LLM** | **98%** (96–99%) | 11 |
+
+Это наши мутации, а не подложенные организаторами ошибки, поэтому реальный результат может отличаться. Повторить: `python scripts/compare_baselines.py --source intl_ru.arb --target intl_kk.arb --glossary glossary.csv --en intl_en.arb --uz intl_uz.arb --seeds 7,11,23`.
+
+**Precision:** считается по ручной разметке, `python scripts/precision_sample.py score review_A_done.csv`. Цифры появятся после ревью носителями.
 
 ## Известные ограничения
 
@@ -90,10 +99,12 @@ locqa fix --decisions out/decisions.csv --target intl_kk.arb --source intl_ru.ar
 - `scripts/run_uz.py` — кодовая часть проверки узбекского.
 - `scripts/translit_kk.py` — транслитерация в казахскую латиницу с проверкой длины.
 - `suggest` предлагает переформулировку для строк с аффиксом после плейсхолдера.
+- `integrations/flutter/kk_affix` и `locqa/lang/kk_runtime.py` подбирают правильный аффикс для значения прямо в игре: Dart-версия проверяется на общих с Python тестовых векторах.
 
 ## Документация и тесты
 
-- `docs/methodology.md` — казахские проверки, глоссарий, метрики.
+- `docs/kazakh.md` — казахская часть: глоссарий, проверки, сравнение с альтернативами.
+- `docs/methodology.md` — методы казахских проверок и метрики.
 - `docs/methodology_llm.md` — смысловые проверки, модели, стоимость.
 - `LLM.md` — настройки и модули LLM-части.
 
