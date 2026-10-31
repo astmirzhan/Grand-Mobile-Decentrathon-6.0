@@ -1,13 +1,28 @@
-# данные кейса публиковать нельзя
+# данные кейса и производные от них файлы публиковать нельзя
 data/
-.locqa_cache/
 out/
-.venv/
-__pycache__/
-*.pyc
-.DS_Store
-.env
-# архив с данными кейса и внутренние документы
+*.arb
+!tests/fixtures/*.arb
+!tests/fixtures/**/*.arb
 *.tgz
+*.zip
 *.pdf
+report.json
+report.html
+report.llm.json
+.locqa_cache/
+l10n_test/
+
+# ключи
+.env
+
+# окружение
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+dist/
+build/
 *.egg-info/
+.pytest_cache/
+.DS_Store

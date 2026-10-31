@@ -56,13 +56,19 @@ def _ru_stems(term_word: str) -> list[str]:
 
 def ru_word_matches(word: str, term_word: str) -> bool:
     w = word.lower()
-    for s in _ru_stems(term_word):
+    tw = term_word.lower()
+    for s in _ru_stems(tw):
         if _LATIN_WORD.match(s):
             if w == s:
                 return True
             continue
-        if w.startswith(s) and (w[len(s):] == "" or w[len(s):] in RU_ENDINGS):
-            return True
+        if w.startswith(s):
+            ending = w[len(s):]
+            if ending == "" or ending in RU_ENDINGS:
+                # Masculine hard-consonant nouns (бан, донат, квест) cannot take soft endings like 'ю' (баню)
+                if tw[-1] not in "аеёиоуыэюяьй" and ending in ("ю", "я", "ею", "ей"):
+                    continue
+                return True
     return False
 
 

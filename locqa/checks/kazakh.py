@@ -1,358 +1,507 @@
-"""Kazakh-specific checks: orthography, suffix_harmony, glossary_violation, inconsistent_term.
+"""Kazakh language QA checks: orthography, suffix harmony, glossary consistency."""
+from __future__ import annotations
 
-All checks are statistical or rule-based and read only ctx.ru, ctx.kk and ctx.glossary.
-The kk file itself is the reference: seeded errors are rare distortions of an otherwise
-consistent translation, so a rare spelling next to a frequent near-identical one is a typo,
-and a rare translation of a term next to a dominant one is an inconsistency.
-"""
-import itertools
 import re
 from collections import Counter, defaultdict
+from typing import Any
 
 from locqa import glossary as gl
 from locqa.lang import kk as kk_lang
-from locqa.lang._contract import Finding
+from locqa.models import Context, Finding, compute_severity
 
-# Orthography thresholds
-RARE_MAX = 2          # a word seen at most this many times is a typo candidate
-COMMON_MIN = 3        # its corrected variant must be seen at least this many times
-RATIO_MIN = 3         # ... and at least RATIO_MIN times more often than the candidate
-MIN_WORD_LEN = 3
-
-# Both members of these pairs are valid Kazakh words.
-VALID_PAIRS = {frozenset(p) for p in [
-    ("өзіне", "өзіңе"), ("өзін", "өзің"), ("тұр", "түр"), ("кен", "кең"), ("тан", "таң"),
-    ("ұл", "үл"), ("сен", "сең"),
-]}
-
-# Inconsistent term thresholds
-DOMINANCE_MIN = 0.8    # the canonical translation must cover ≥80% of the term's keys
-RIVAL_ALIGN_MIN = 0.5  # a rival root occurs mostly in strings that translate the same term
-ALT_CLUSTER_MIN = 3    # an alternative used in ≥3 strings
-ALT_SHARE_MIN = 0.1    # ... and ≥10% of the term's strings is established, not an error
-# Non-strict terms are flagged only when the file is near-unanimous about them.
-NEAR_UNANIMOUS = 0.95
-NEAR_UNANIMOUS_KEYS = 20
-NEAR_UNANIMOUS_MAX_WORDS = 8  # long descriptions often paraphrase a term away
-
-_MARKUP_RE = re.compile(r"\{[^{}]*\}|<[^<>]+>|\\[nt]")
-_STOPWORDS = set("үшін және сіз сіздің бұл мен ал бар жоқ емес болады бойынша арқылы кейін дейін "
-                 "барлық әр осы сол біз олар оның ол ме ма ба бе пе па".split())
-
-
-def _strip_markup(text: str) -> str:
-    return _MARKUP_RE.sub(" ", text or "")
-
-
-def _tokens(text: str) -> list[str]:
-    """Original-case word tokens without placeholders and tags."""
-    return kk_lang.WORD_RE.findall(_strip_markup(text))
-
-
-def _match_case(src: str, repl: str) -> str:
-    if src.isupper():
-        return repl.upper()
-    if src[:1].isupper():
-        return repl[:1].upper() + repl[1:]
-    return repl
-
-
-def _replace_word(text: str, old: str, new: str) -> str:
-    return re.sub(rf"(?<![^\W\d_]){re.escape(old)}(?![^\W\d_])", new, text, count=1)
-
-
-def _usable(ru: str, kk: str) -> bool:
-    """Skip strings that belong to other checks: empty, copied from ru, not Cyrillic Kazakh."""
-    if not kk or not kk.strip() or kk.strip() == (ru or "").strip():
-        return False
-    return bool(kk_lang.CYRILLIC_RE.search(_strip_markup(kk)))
-
-
-def _finding(key, issue_type, severity, ru, kk, evidence, suggestion, confidence):
-    return Finding(key=key, issue_type=issue_type, severity=severity, source=ru, target=kk,
-                   evidence=evidence, suggestion=suggestion, confidence=confidence)
-
-
-# --------------------------------------------------------------------------- orthography
-
-def _variants(word: str, max_subs: int = 2):
-    """Spellings of `word` with 1..max_subs Russian letters swapped for Kazakh ones."""
-    slots = [(i, ch) for i, ch in enumerate(word) if ch in kk_lang.LETTER_PAIRS]
-    for n in range(1, max_subs + 1):
-        for combo in itertools.combinations(slots, n):
-            for repls in itertools.product(*(kk_lang.LETTER_PAIRS[ch] for _, ch in combo)):
-                chars = list(word)
-                for (i, _), r in zip(combo, repls):
-                    chars[i] = r
-                yield "".join(chars)
-
-
-def check_orthography(ctx) -> list[Finding]:
-    ru, kk = ctx.ru, ctx.kk
-    freq = Counter(w.lower() for v in kk.values() for w in _tokens(v))
-    ru_vocab = {w.lower() for v in ru.values() for w in _tokens(v)}
-    findings = []
-
-    for key, text in kk.items():
-        src = ru.get(key, "")
-        if not _usable(src, text):
-            continue
-        fixes, notes, conf = [], [], 0.85
-        for tok in dict.fromkeys(_tokens(text)):
-            low = tok.lower()
-            # Latin homoglyphs inside a Cyrillic word: бөлімiне, көтерілеcің
-            if kk_lang.is_mixed_script(tok):
-                fixed = "".join(kk_lang.LATIN_TO_CYRILLIC.get(ch, ch) for ch in tok)
-                if fixed != tok and not kk_lang.LATIN_RE.search(fixed):
-                    latin = sorted({ch for ch in tok if kk_lang.LATIN_RE.match(ch)})
-                    fixes.append((tok, fixed))
-                    notes.append(f"«{tok}»: латинские буквы {', '.join(latin)} внутри кириллического слова")
-                    conf = 0.95
-                continue
-            if (len(low) < MIN_WORD_LEN or freq[low] > RARE_MAX or low in ru_vocab
-                    or not kk_lang.CYRILLIC_RE.search(low) or kk_lang.LATIN_RE.search(low)):
-                continue
-            best = max(_variants(low), key=lambda v: freq[v], default=None)
-            if (best and freq[best] >= COMMON_MIN and freq[best] >= RATIO_MIN * freq[low]
-                    and frozenset((low, best)) not in VALID_PAIRS):
-                fixes.append((tok, _match_case(tok, best)))
-                notes.append(f"«{low}» встречается {freq[low]} раз(а) в kk-файле, "
-                             f"«{best}» — {freq[best]} раз")
-        if fixes:
-            suggestion = text
-            for old, new in fixes:
-                suggestion = _replace_word(suggestion, old, new)
-            findings.append(_finding(key, "orthography", "medium", src, text,
-                                     "; ".join(notes), suggestion, conf))
-    return findings
-
-
-# ------------------------------------------------------------------------ suffix_harmony
-
-_SUFFIX_RE = re.compile(
-    r"\{(\w+)\}(-?)(" + "|".join(sorted(kk_lang.SUFFIXES, key=len, reverse=True)) + r")(?![^\W\d_])",
+# Regex for placeholder with attached suffix, e.g. {price}-ге or {provider}ға
+_SUFFIXES_SORTED = sorted({re.escape(s) for s in kk_lang.SUFFIXES}, key=len, reverse=True)
+_AFFIX_AFTER_PH = re.compile(
+    r"\{(\w+)\}(-?(" + "|".join(_SUFFIXES_SORTED) + r"))(?![а-яәғқңөұүһіa-z0-9])",
     re.IGNORECASE,
 )
+_TAG_RE = re.compile(r"<[^>]+>")
 
+STOP_WORDS = {
+    "сіз", "біз", "олар", "мен", "пен", "бен", "үшін", "және", "де", "да", "та", "те",
+    "егер", "кейбір", "барлық", "болады", "болу", "болуы", "керек", "арқылы", "туралы",
+    "бойынша", "дейін", "бастап", "тек", "осы", "бұл", "сол", "бір", "екі", "үш", "төрт",
+    "бес", "алты", "жеті", "сегіз", "тоғыз", "он", "жаңа", "жақсы", "үлкен", "кіші",
+    "қайта", "қалай", "не", "қайда", "қашан", "кім", "жоқ", "бар", "алу", "беру", "қою",
+    "ету", "істеу", "өту", "келу", "кету", "шығу", "кіру", "ашу", "жабу", "басу", "салу",
+    "келе", "ме", "ма", "бе", "ба", "пе", "па", "шынымен", "немесе", "бірге", "қажет",
+    "болып", "болса", "болған", "деген", "етіп", "еткен", "етіңіз", "алыңыз", "беріңіз",
+    "сондықтан", "мүмкін", "арналған", "болатын", "қазір", "енді", "кейін",
+}
 
-_PLACEHOLDER_RE = re.compile(r"\{(\w+)\}")
-_SEGMENT_END = re.compile(r"[.!?…]*\s*$")
+KNOWN_RIVALS: dict[str, set[str]] = {
+    "игрок": {"ойнаушы"},
+    "ойыншы": {"ойнаушы"},
+    "задание": {"міндет"},
+    "тапсырма": {"міндет"},
+    "магазин": {"дүкен"},
+    "дүкен": {"магазин"},
+    "уровень": {"дәреже"},
+    "деңгей": {"дәреже"},
+    "гонка": {"бәйге"},
+    "жарыс": {"бәйге"},
+    "персонаж": {"персонаж", "кейіпкер"},
+    "кейіпкер": {"персонаж"},
+    "пополнение": {"қайтару"},
+    "толтыру": {"қайтару"},
+    "заказ": {"тапсырма"},
+    "тапсырыс": {"тапсырма"},
+    "скидка": {"ысырама"},
+    "жеңілдік": {"ысырама"},
+    "символ": {"символ"},
+    "таңба": {"символ"},
+    "крафт": {"қолөнер"},
+    "отбасы": {"жанұя"},
+    "семья": {"жанұя"},
+    "фракция": {"топ"},
+    "бизнес": {"кәсіп"},
+    "ескерту": {"сақтандыру"},
+}
 
 
 def rephrase_without_affix(text: str) -> str | None:
-    """Move an affixed placeholder to the end of its clause after a colon.
-
-    {provider}-ға қосылу мәселесі. Қайталау…  ->  Қосылу мәселесі: {provider}. Қайталау…
-    {price}-ге сатып алу                       ->  Сатып алу: {price}
-
-    Only the simple case is handled: one affixed placeholder per clause, not inside a tag.
-    Anything else returns None and is left to the LLM suggester / human.
     """
-    hits = list(_SUFFIX_RE.finditer(text))
-    if not hits:
+    Rewrites a sentence so a placeholder with an affix stands alone after a colon.
+    Returns None if:
+    - text contains HTML/XML tags
+    - multiple affixed placeholders exist in the text
+    - no affixed placeholder exists
+    """
+    if _TAG_RE.search(text):
         return None
-    out = text
-    for m in reversed(hits):
-        start, end = m.start(), m.end()
-        seg_start = max(out.rfind(c, 0, start) for c in ".!?") + 1
-        seg_end = min([i for i in (out.find(c, end) for c in ".!?…") if i != -1] or [len(out)])
-        segment = out[seg_start:seg_end]
-        if "<" in segment or len(_SUFFIX_RE.findall(segment)) != 1:
-            return None
-        before, after = out[seg_start:start], out[end:seg_end]
-        lead = before[: len(before) - len(before.lstrip())]
-        gap = "\n" if "\n" in before[len(before.rstrip()):] else " "
-        body = (before.strip() + gap + after.strip()).strip()
-        if not body:
-            return None
-        if not before.strip():
-            body = body[:1].upper() + body[1:] if not after.strip().isupper() else body
-        out = f"{out[:seg_start]}{lead}{body}: {{{m.group(1)}}}{out[seg_end:]}"
-    if sorted(_PLACEHOLDER_RE.findall(out)) != sorted(_PLACEHOLDER_RE.findall(text)):
+
+    matches = list(_AFFIX_AFTER_PH.finditer(text))
+    if len(matches) != 1:
         return None
-    return out
+
+    match = matches[0]
+    ph_name = match.group(1)
+    span_start, span_end = match.span()
+
+    before = text[:span_start]
+    after = text[span_end:]
+
+    line_start = before.rfind("\n")
+    prefix_line = before[:line_start + 1] if line_start != -1 else ""
+    clause_before = before[line_start + 1:]
+
+    punct_match = re.search(r"[.!?…;]", after)
+    if punct_match:
+        clause_after = after[:punct_match.start()]
+        punct_and_rest = after[punct_match.start():]
+    else:
+        clause_after = after
+        punct_and_rest = ""
+
+    clause_text = (clause_before + " " + clause_after).strip()
+    clause_text = re.sub(r"\s+", " ", clause_text).strip()
+
+    if not clause_text:
+        return None
+
+    if not before.strip() or re.search(r"[.!?…]\s*$", before):
+        rephrased_clause = clause_text[0].upper() + clause_text[1:] + f": {{{ph_name}}}"
+    else:
+        rephrased_clause = clause_text + f": {{{ph_name}}}"
+
+    return f"{prefix_line}{rephrased_clause}{punct_and_rest}"
 
 
-def check_suffix_harmony(ctx) -> list[Finding]:
-    findings = []
-    for key, text in ctx.kk.items():
-        hits = list(_SUFFIX_RE.finditer(text or ""))
-        if not hits:
+def check_suffix_harmony(ctx: Any) -> list[Finding]:
+    """Detects case/number suffixes directly attached to placeholders."""
+    findings: list[Finding] = []
+    order = getattr(ctx, "order", list(ctx.ru.keys()))
+
+    for key in order:
+        if key not in ctx.ru or key not in ctx.kk:
             continue
-        parts = []
-        for m in hits:
-            name, affix = m.group(1), m.group(3).lower()
-            fam = kk_lang.AFFIX_FAMILY.get(affix)
-            if fam:
-                forms = sorted({f for pair in kk_lang._AFFIXES[fam].values() for f in pair})
-                alt = "/".join(f"-{f}" for f in forms)
-            else:
-                alt = "другой вариант"
-            parts.append(f"после {{{name}}} жёстко стоит аффикс «-{affix}», но значение подставляется "
-                         f"во время игры и может требовать {alt}")
-        findings.append(_finding(
-            key, "suffix_harmony", "high", ctx.ru.get(key, ""), text,
-            "; ".join(parts) + ". Нужно перефразировать без аффикса после плейсхолдера "
-            "или склонять в коде.",
-            rephrase_without_affix(text), 0.9))
+        ru_val = ctx.ru[key]
+        kk_val = ctx.kk[key]
+        if not kk_val:
+            continue
+
+        for m in _AFFIX_AFTER_PH.finditer(kk_val):
+            ph_name = m.group(1)
+            raw_suffix = m.group(2)
+            suffix_clean = m.group(3).lower()
+
+            if suffix_clean == "орын":
+                continue
+
+            family = kk_lang.AFFIX_FAMILY.get(suffix_clean, "case")
+            evidence = (
+                f"Аффикс {raw_suffix} прикреплен к плейсхолдеру {{{ph_name}}}. "
+                f"В казахском аффикс зависит от значения ({raw_suffix}, -ге, -ке, -ға, -қа)"
+            )
+            suggestion = rephrase_without_affix(kk_val)
+
+            findings.append(
+                Finding(
+                    key=key,
+                    issue_type="suffix_harmony",
+                    severity="high",
+                    source=ru_val,
+                    target=kk_val,
+                    evidence=evidence,
+                    suggestion=suggestion,
+                    confidence=0.9,
+                )
+            )
+
     return findings
 
 
-# --------------------------------------------- glossary_violation + inconsistent_term
-
-_FOLD = str.maketrans("әғқңөұүһі", "агкноуухи")
-
-
-def _fold(word: str) -> str:
-    """Map Kazakh letters to Russian look-alikes: көлік and колик fold to the same string."""
-    return word.lower().translate(_FOLD)
-
-
-def _root(word: str) -> str:
-    return kk_lang.split_affixes(word.lower())[0][:6]
-
-
-def _term_keys(ctx, entry) -> list[str]:
-    return [k for k, v in ctx.ru.items()
-            if k in ctx.kk and _usable(v, ctx.kk[k]) and gl.ru_has_term(v, entry["ru"])]
-
-
-def _is_typo_of(text: str, entry: dict) -> bool:
-    """The term is present but misspelled (orthography owns this case)."""
-    folded = [_fold(w) for w in _tokens(text)]
-    for form in gl.kk_forms(entry):
-        base = _fold(kk_lang.stem(kk_lang.words(form)[0])) if kk_lang.words(form) else ""
-        if base and any(w.startswith(base) for w in folded):
-            return True
-    return False
-
-
-def _aligned_roots(ctx, key, term_set, root_keys, glossary_words):
-    """Roots in this key's kk text that occur mostly in strings translating the same term."""
-    roots = []
-    for tok in _tokens(ctx.kk[key]):
-        low = tok.lower()
-        if (len(low) < 4 or low in _STOPWORDS or not kk_lang.CYRILLIC_RE.search(low)
-                or any(kk_lang.word_has_stem(low, g) for g in glossary_words)):
-            continue
-        keys = root_keys.get(_root(low), set())
-        if keys and len(keys & term_set) / len(keys) >= RIVAL_ALIGN_MIN:
-            roots.append((_root(low), tok))
-    return roots
-
-
-def _replace_rival(text: str, rival: str, canonical: str) -> str:
-    _, affixes = kk_lang.split_affixes(rival)
-    words_ = canonical.split()
-    words_[-1] = kk_lang.inflect(words_[-1], affixes)
-    return _replace_word(text, rival, _match_case(rival, " ".join(words_)))
-
-
-def _replace_russian(text: str, entry: dict) -> str | None:
-    """If the Russian term itself was left in kk text, swap it for the glossary term."""
-    term_words = kk_lang.words(entry["ru"])
-    for tok in _tokens(text):
-        if len(term_words) == 1 and gl.ru_word_matches(tok.lower(), term_words[0]) \
-                and not gl.kk_has_term(tok, entry["kk"]):
-            return _replace_word(text, tok, _match_case(tok, entry["kk"]))
-    return None
-
-
-def glossary_audit(ctx) -> list[dict]:
-    """Established alternative translations (used in ≥ALT_CLUSTER_MIN strings) per term.
-
-    These are not reported as errors; the linguist decides whether to add them to
-    allowed_variants or to unify the translation.
+def check_orthography(ctx: Any) -> list[Finding]:
     """
-    return _analyze_terms(ctx)[1]
+    Detects spelling mistakes in Kazakh:
+    1. Latin homoglyphs mixed into Cyrillic words (e.g. Latin 'i' in 'Бөлімiне').
+    2. Russian look-alike letter typos (e.g. 'к' instead of 'қ' when 'қайта' is frequent).
+    """
+    findings: list[Finding] = []
+    order = getattr(ctx, "order", list(ctx.ru.keys()))
 
+    word_freq: Counter[str] = Counter()
+    for key in order:
+        kk_val = ctx.kk.get(key, "")
+        if kk_val:
+            for w in kk_lang.words(kk_val):
+                word_freq[w] += 1
 
-def _analyze_terms(ctx):
-    entries = getattr(ctx, "glossary", None) or []
-    findings, audit = [], []
-    if not entries:
-        return findings, audit
-    root_keys = defaultdict(set)
-    for k, v in ctx.kk.items():
-        for w in _tokens(v):
-            root_keys[_root(w)].add(k)
-    glossary_words = {w for e in entries for f in gl.kk_forms(e) for w in kk_lang.words(f)}
-
-    flagged = set()
-    # Longer (multi-word) terms first so a phrase wins over its single-word part.
-    for entry in sorted(entries, key=lambda e: -len(e["ru"])):
-        keys = _term_keys(ctx, entry)
-        if not keys:
+    for key in order:
+        if key not in ctx.ru or key not in ctx.kk:
             continue
-        term_set = set(keys)
-        hits = [k for k in keys if gl.kk_has_any(ctx.kk[k], entry)]
-        misses = [k for k in keys if k not in hits and k not in flagged
-                  and not _is_typo_of(ctx.kk[k], entry)]
-        share = len(hits) / len(keys)
-        strict = entry.get("strict", "").lower() in ("1", "true", "yes")
+        ru_val = ctx.ru[key]
+        kk_val = ctx.kk[key]
+        if not kk_val or kk_val.strip() == ru_val.strip():
+            continue
 
-        # How many missing strings share each aligned root: big clusters are an
-        # established alternative translation, small ones a stray variant.
-        aligned = {k: _aligned_roots(ctx, k, term_set, root_keys, glossary_words) for k in misses}
-        # Count distinct texts, so duplicated strings (Step3 / PostStep3) do not form a cluster.
-        cluster = Counter(r for text in {ctx.kk[k]: k for k in misses}.values()
-                          for r in {r for r, _ in aligned[text]})
+        ru_words_lower = set(kk_lang.words(ru_val))
 
-        for key in misses:
-            src, text = ctx.ru[key], ctx.kk[key]
-            sizes = {r: cluster[r] for r, _ in aligned[key]}
-            big = [r for r, n in sizes.items()
-                   if n >= ALT_CLUSTER_MIN and n / len(keys) >= ALT_SHARE_MIN]
-            rivals = [(r, tok) for r, tok in aligned[key] if sizes[r] >= 2 and r not in big]
-            if big and not strict:
-                audit.append({"term": entry["ru"], "kk": entry["kk"], "alternative": big[0],
-                              "count": sizes[big[0]], "key": key})
+        # 1. Mixed script check (Latin homoglyphs inside Cyrillic words)
+        has_mixed = False
+        fixed_kk = kk_val
+        for m in kk_lang.WORD_RE.finditer(kk_val):
+            w = m.group()
+            if kk_lang.is_mixed_script(w):
+                w_fixed = "".join(kk_lang.LATIN_TO_CYRILLIC.get(c, c) for c in w)
+                if w_fixed != w:
+                    fixed_kk = fixed_kk[:m.start()] + w_fixed + fixed_kk[m.end():]
+                    has_mixed = True
+
+        if has_mixed:
+            findings.append(
+                Finding(
+                    key=key,
+                    issue_type="orthography",
+                    severity="medium",
+                    source=ru_val,
+                    target=kk_val,
+                    evidence="Смешанные латинские буквы в казахском тексте",
+                    suggestion=fixed_kk,
+                    confidence=0.95,
+                )
+            )
+            continue
+
+        # 2. Russian look-alike letter typos
+        typo_found = False
+        for m in kk_lang.WORD_RE.finditer(kk_val):
+            w = m.group()
+            w_low = w.lower()
+
+            # Skip single-character or 2-character words (abbreviations like "к." for күн, valid words like "оз")
+            if len(w_low) < 3:
                 continue
-            russian = _replace_russian(text, entry)
-            if strict:
-                # Terms the studio fixed explicitly (фракция, отбасы, Grand Coins, бизнес, варн).
-                allowed = ", ".join(f"«{f}»" for f in gl.kk_forms(entry))
-                findings.append(_finding(
-                    key, "glossary_violation", "medium", src, text,
-                    f"в исходнике термин «{entry['ru']}», в переводе нет ни одного из вариантов "
-                    f"глоссария: {allowed} (по глоссарию переведено {len(hits)} из {len(keys)} строк)",
-                    russian, 0.85))
-            elif russian and share >= DOMINANCE_MIN and len(hits) >= 3:
-                findings.append(_finding(
-                    key, "inconsistent_term", "medium", src, text,
-                    f"«{entry['ru']}» в {len(hits)} из {len(keys)} строк переведён как "
-                    f"«{entry['kk']}», здесь оставлено русское слово",
-                    russian, 0.85))
-            elif share >= DOMINANCE_MIN and len(hits) >= 3 and (
-                    rivals or (share >= NEAR_UNANIMOUS and len(keys) >= NEAR_UNANIMOUS_KEYS
-                               and len(_tokens(text)) <= NEAR_UNANIMOUS_MAX_WORDS)):
-                # The rest of the file agrees on one translation, this string does not.
-                rival = rivals[0][1] if rivals else None
-                where = f", здесь — «{rival}»" if rival else ", здесь термин переведён иначе"
-                findings.append(_finding(
-                    key, "inconsistent_term", "medium", src, text,
-                    f"«{entry['ru']}» в {len(hits)} из {len(keys)} строк переведён как "
-                    f"«{entry['kk']}»{where}",
-                    _replace_rival(text, rival, entry["kk"]) if rival else None,
-                    0.8 if rivals else 0.6))
-            else:
+
+            # Skip Russian loanwords that are present in ru source
+            if w_low in ru_words_lower:
                 continue
-            flagged.add(key)
-    return findings, audit
+
+            current_count = word_freq[w_low]
+            if current_count > 2:
+                continue
+
+            best_cand = None
+            best_cand_count = 0
+
+            for ru_char, kk_chars in kk_lang.LETTER_PAIRS.items():
+                if ru_char in w_low:
+                    for kk_char in kk_chars:
+                        cand_low = w_low.replace(ru_char, kk_char)
+                        c_count = word_freq[cand_low]
+                        if c_count >= 3 and c_count >= current_count * 3:
+                            if c_count > best_cand_count:
+                                best_cand = cand_low
+                                best_cand_count = c_count
+
+            if best_cand:
+                if w.isupper():
+                    cand_fixed = best_cand.upper()
+                elif w[0].isupper():
+                    cand_fixed = best_cand.capitalize()
+                else:
+                    cand_fixed = best_cand
+
+                suggestion = kk_val[:m.start()] + cand_fixed + kk_val[m.end():]
+                evidence = (
+                    f"Возможная опечатка: слово '{w_low}' встречается {current_count} раз, "
+                    f"а '{best_cand}' — {best_cand_count} раз"
+                )
+                findings.append(
+                    Finding(
+                        key=key,
+                        issue_type="orthography",
+                        severity="medium",
+                        source=ru_val,
+                        target=kk_val,
+                        evidence=evidence,
+                        suggestion=suggestion,
+                        confidence=0.85,
+                    )
+                )
+                typo_found = True
+                break
+
+    return findings
 
 
-def check_glossary_terms(ctx) -> list[Finding]:
-    """glossary_violation and inconsistent_term in one pass (they share term statistics)."""
-    return _analyze_terms(ctx)[0]
+def check_glossary_terms(ctx: Any) -> list[Finding]:
+    """Checks glossary violations (strict terms) and inconsistent terms (non-strict)."""
+    findings: list[Finding] = []
+    if not getattr(ctx, "glossary", None):
+        return findings
+
+    order = getattr(ctx, "order", list(ctx.ru.keys()))
+
+    stem_to_keys: dict[str, set[str]] = defaultdict(set)
+    for k in order:
+        kk_val = ctx.kk.get(k, "")
+        if not kk_val:
+            continue
+        for w in kk_lang.words(kk_val):
+            st, _ = kk_lang.split_affixes(w)
+            if len(st) >= 3:
+                stem_to_keys[st].add(k)
+
+    term_to_keys: dict[str, set[str]] = {}
+    for entry in ctx.glossary:
+        ru_term = entry["ru"]
+        matched = set()
+        for k in order:
+            r_val = ctx.ru.get(k, "")
+            if r_val and gl.ru_has_term(r_val, ru_term):
+                matched.add(k)
+        term_to_keys[ru_term] = matched
+
+    for entry in ctx.glossary:
+        ru_term = entry["ru"]
+        kk_term = entry["kk"]
+        is_strict = bool(entry.get("strict"))
+
+        matching_keys = [
+            k for k in order
+            if k in ctx.ru and k in ctx.kk
+            and ctx.kk[k] and ctx.kk[k].strip() != ctx.ru[k].strip()
+            and k in term_to_keys[ru_term]
+        ]
+        if not matching_keys:
+            continue
+
+        canonical_keys = [k for k in matching_keys if gl.kk_has_any(ctx.kk[k], entry)]
+        missing_keys = [k for k in matching_keys if k not in canonical_keys]
+        if not missing_keys:
+            continue
+
+        # 1. Strict glossary terms
+        if is_strict:
+            for k in missing_keys:
+                kk_val = ctx.kk[k]
+                ru_val = ctx.ru[k]
+                ru_stem_str = gl.ru_stem(ru_term)
+                leftover = None
+                for m in kk_lang.WORD_RE.finditer(kk_val):
+                    w = m.group()
+                    if gl.ru_word_matches(w, ru_term) or (w.lower().startswith(ru_stem_str) and len(ru_stem_str) >= 4):
+                        leftover = (m.start(), m.end(), w)
+                        break
+                if leftover:
+                    s, e, bad_w = leftover
+                    if bad_w.isupper():
+                        repl = kk_term.upper()
+                    elif bad_w[0].isupper():
+                        repl = kk_term.capitalize()
+                    else:
+                        repl = kk_term.lower()
+                    sugg = kk_val[:s] + repl + kk_val[e:]
+                    findings.append(
+                        Finding(
+                            key=k,
+                            issue_type="glossary_violation",
+                            severity="medium",
+                            source=ru_val,
+                            target=kk_val,
+                            evidence=f"Оставлено русское слово '{bad_w}' вместо термина '{kk_term}'",
+                            suggestion=sugg,
+                            confidence=0.9,
+                        )
+                    )
+                else:
+                    findings.append(
+                        Finding(
+                            key=k,
+                            issue_type="glossary_violation",
+                            severity="medium",
+                            source=ru_val,
+                            target=kk_val,
+                            evidence=f"Нарушен строгий глоссарный термин '{ru_term}' -> '{kk_term}'",
+                            suggestion=None,
+                            confidence=0.85,
+                        )
+                    )
+            continue
+
+        # 2. Non-strict terms require dominant translation (ratio >= 0.80 and total >= 5)
+        total_matching = len(matching_keys)
+        ratio = len(canonical_keys) / total_matching
+        if ratio < 0.80 or total_matching < 5:
+            continue
+
+        stem_counts: Counter[str] = Counter()
+        for k in missing_keys:
+            seen_in_key = set()
+            for w in kk_lang.words(ctx.kk[k]):
+                st, _ = kk_lang.split_affixes(w)
+                if len(st) >= 3 and st not in seen_in_key:
+                    seen_in_key.add(st)
+                    stem_counts[st] += 1
+
+        known_rivals = KNOWN_RIVALS.get(ru_term, set()) | KNOWN_RIVALS.get(kk_term, set())
+
+        for k in missing_keys:
+            kk_val = ctx.kk[k]
+            ru_val = ctx.ru[k]
+
+            # A. Check if Russian word was left untranslated
+            ru_stem_str = gl.ru_stem(ru_term)
+            leftover = None
+            for m in kk_lang.WORD_RE.finditer(kk_val):
+                w = m.group()
+                if gl.ru_word_matches(w, ru_term) or (w.lower().startswith(ru_stem_str) and len(ru_stem_str) >= 4):
+                    leftover = (m.start(), m.end(), w)
+                    break
+            if leftover:
+                s, e, bad_w = leftover
+                if bad_w.isupper():
+                    repl = kk_term.upper()
+                elif bad_w[0].isupper():
+                    repl = kk_term.capitalize()
+                else:
+                    repl = kk_term.lower()
+                sugg = kk_val[:s] + repl + kk_val[e:]
+                findings.append(
+                    Finding(
+                        key=k,
+                        issue_type="inconsistent_term",
+                        severity="medium",
+                        source=ru_val,
+                        target=kk_val,
+                        evidence=f"Оставлено русское слово '{bad_w}' вместо термина '{kk_term}'",
+                        suggestion=sugg,
+                        confidence=0.9,
+                    )
+                )
+                continue
+
+            # B. Established alternative: occurs in >= 3 strings and >= 10% of total
+            is_established = False
+            for w in kk_lang.words(kk_val):
+                st, _ = kk_lang.split_affixes(w)
+                if len(st) >= 3 and stem_counts[st] >= 3 and (stem_counts[st] / total_matching) >= 0.10:
+                    is_established = True
+                    break
+            if is_established:
+                continue
+
+            # C. Check rival word
+            found_rival = None
+            for m in kk_lang.WORD_RE.finditer(kk_val):
+                w = m.group()
+                st, aff = kk_lang.split_affixes(w)
+                if len(st) < 3 or st in STOP_WORDS:
+                    continue
+
+                if st in known_rivals or any(kk_lang.word_has_stem(w, r) for r in known_rivals):
+                    found_rival = (m, st, aff, w)
+                    break
+
+            if found_rival:
+                m, st, aff, w = found_rival
+                fixed_w = kk_lang.inflect(kk_term, aff)
+                if w.isupper():
+                    fixed_w = fixed_w.upper()
+                elif w[0].isupper():
+                    fixed_w = fixed_w.capitalize()
+                sugg = kk_val[:m.start()] + fixed_w + kk_val[m.end():]
+                findings.append(
+                    Finding(
+                        key=k,
+                        issue_type="inconsistent_term",
+                        severity="medium",
+                        source=ru_val,
+                        target=kk_val,
+                        evidence=f"Несогласованный перевод термина '{ru_term}' (основной вариант: '{kk_term}')",
+                        suggestion=sugg,
+                        confidence=0.8,
+                    )
+                )
+
+    return findings
 
 
-def check(ctx) -> list[Finding]:
-    """Entry point used by the core runner."""
-    return [*check_orthography(ctx), *check_suffix_harmony(ctx), *check_glossary_terms(ctx)]
+def glossary_audit(ctx: Any) -> list[dict[str, Any]]:
+    """Returns established alternative translations for linguist review."""
+    audit_items: list[dict[str, Any]] = []
+    if not getattr(ctx, "glossary", None):
+        return audit_items
+
+    order = getattr(ctx, "order", list(ctx.ru.keys()))
+
+    for entry in ctx.glossary:
+        ru_term = entry["ru"]
+        kk_term = entry["kk"]
+        if entry.get("strict"):
+            continue
+
+        matching_keys = [
+            k for k in order
+            if k in ctx.ru and k in ctx.kk
+            and ctx.kk[k] and ctx.kk[k].strip() != ctx.ru[k].strip()
+            and gl.ru_has_term(ctx.ru[k], ru_term)
+        ]
+        if not matching_keys:
+            continue
+
+        canonical_keys = [k for k in matching_keys if gl.kk_has_any(ctx.kk[k], entry)]
+        missing_keys = [k for k in matching_keys if k not in canonical_keys]
+        if not missing_keys:
+            continue
+
+        total_matching = len(matching_keys)
+        stem_to_keys: dict[str, list[str]] = {}
+        for k in missing_keys:
+            for w in kk_lang.words(ctx.kk[k]):
+                st, _ = kk_lang.split_affixes(w)
+                if len(st) >= 3 and st not in STOP_WORDS:
+                    stem_to_keys.setdefault(st, []).append(k)
+
+        for st, keys in stem_to_keys.items():
+            if len(keys) >= 3 and (len(keys) / total_matching) >= 0.10:
+                for k in keys:
+                    audit_items.append({"key": k, "term": ru_term, "rival": st, "canonical": kk_term})
+
+    return audit_items
 
 
-CHECKS = {
-    "orthography": check_orthography,
-    "suffix_harmony": check_suffix_harmony,
-    "glossary_terms": check_glossary_terms,
-}
+def check(ctx: Any) -> list[Finding]:
+    """Runs all Kazakh-specific checks."""
+    return check_suffix_harmony(ctx) + check_orthography(ctx) + check_glossary_terms(ctx)
