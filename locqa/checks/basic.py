@@ -223,6 +223,9 @@ IDENTICAL_KK_RU_LOANWORDS: set[str] = {
     "биология",
     "директор",
     "влад",
+    "баланс", "инвентарь", "витрина", "ставка", "трансмиссия", "диагноз",
+    "компас", "пистолет", "донат", "тест-драйв", "крупье", "шоколад",
+    "руб.", "вконтакте", "line экспресс", "клаксон", "винил",
 }
 
 
@@ -231,11 +234,16 @@ def _is_exempt_same_as_source(key: str, ru_val: str, ctx: Context, brands: set[s
     if len(stripped) <= 2:
         return True
     low = stripped.lower()
-    if low in brands or low in IDENTICAL_KK_RU_LOANWORDS:
+    exempt = brands | IDENTICAL_KK_RU_LOANWORDS
+    if low in exempt:
         return True
     if key in ctx.en and ctx.en[key].strip().lower() == low:
         return True
     without_ph = _PLACEHOLDER_STRIP_RE.sub("", stripped)
+    # Loanwords may repeat or occur next to a number/placeholder (e.g. КЛАКСОН №).
+    words = re.findall(r"[a-zа-яёәіңғүұқөһ]+", without_ph.lower())
+    if words and all(w in exempt for w in words):
+        return True
     if not _CYRILLIC_RE.search(without_ph):
         return True
     return False

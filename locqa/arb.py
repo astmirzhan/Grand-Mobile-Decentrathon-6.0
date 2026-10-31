@@ -7,6 +7,10 @@ from pathlib import Path
 from typing import Any
 
 
+class _ObjectPairs(list):
+    """Distinguish JSON objects from arrays, including empty ones."""
+
+
 @dataclass
 class ParsedArb:
     values: dict[str, str] = field(default_factory=dict)
@@ -19,9 +23,9 @@ class ParsedArb:
 
 def _pairs_to_dict(obj: Any) -> Any:
     """Превращает вложенные списки пар от object_pairs_hook обратно в dict."""
+    if isinstance(obj, _ObjectPairs):
+        return {k: _pairs_to_dict(v) for k, v in obj}
     if isinstance(obj, list):
-        if all(isinstance(item, tuple) and len(item) == 2 for item in obj):
-            return {k: _pairs_to_dict(v) for k, v in obj}
         return [_pairs_to_dict(item) for item in obj]
     return obj
 
@@ -32,8 +36,8 @@ def load_arb(path: str | Path) -> ParsedArb:
     повторяющиеся @@comment и исходный порядок ключей.
     """
     p = Path(path)
-    with p.open("r", encoding="utf-8") as f:
-        pairs: list[tuple[str, Any]] = json.load(f, object_pairs_hook=list)
+    with p.open("r", encoding="utf-8-sig") as f:
+        pairs: list[tuple[str, Any]] = json.load(f, object_pairs_hook=_ObjectPairs)
 
     result = ParsedArb(raw_pairs=pairs)
     current_section = ""
@@ -63,7 +67,52 @@ def load_arb(path: str | Path) -> ParsedArb:
     return result
 
 
-_KEY_LINE_RE = re.compile(r'^(\s*)"((?:\\.|[^"\\])*)"(\s*:\s*)(.*?)(\s*,?\s*)$')
+@dataclass
+class _Member:
+    key: str
+    raw: str
+    value_start: int
+
+    def replace(self, value: Any) -> None:
+        self.raw = self.raw[:self.value_start] + json.dumps(value, ensure_ascii=False)
+
+
+def _members(text: str) -> tuple[list[_Member], str]:
+    """Parse complete top-level values, retaining whitespace and duplicate @@comment keys."""
+    decoder = json.JSONDecoder()
+    start = len(text) - len(text.lstrip())
+    if start >= len(text) or text[start] != "{":
+        raise ValueError("ARB must be a JSON object")
+    members = []
+    i = start + 1
+    while True:
+        raw_start = i
+        while i < len(text) and text[i].isspace():
+            i += 1
+        if i < len(text) and text[i] == "}":
+            return members, text[raw_start:i]
+        key, key_end = decoder.raw_decode(text, i)
+        if not isinstance(key, str):
+            raise ValueError("ARB keys must be strings")
+        i = key_end
+        while text[i].isspace():
+            i += 1
+        if text[i] != ":":
+            raise ValueError("Expected ':' after ARB key")
+        i += 1
+        while text[i].isspace():
+            i += 1
+        value_start = i
+        _, i = decoder.raw_decode(text, i)
+        members.append(_Member(key, text[raw_start:i], value_start - raw_start))
+        raw_start = i
+        while i < len(text) and text[i].isspace():
+            i += 1
+        if text[i] == "}":
+            return members, text[raw_start:i]
+        if text[i] != ",":
+            raise ValueError("Expected ',' between ARB members")
+        i += 1
 
 
 def update_arb_file(
@@ -74,95 +123,66 @@ def update_arb_file(
     review_meta: dict[str, dict[str, Any]] | None = None,
     fallback_meta: bool = False,
 ) -> None:
+    """Update complete JSON values, preserving untouched text, metadata and sections.
+
+    Compact ARB and multiline metadata are supported. The output is parsed before
+    an atomic replace, so failed validation cannot truncate an existing result.
     """
-    Построчно обновляет значения в ARB-файле, не ломая @@comment, отступы и порядок.
-    Отсутствующие ключи вставляет в то же место, где они стоят в ru_order.
-    """
-    target_p = Path(target_path)
-    out_p = Path(out_path)
-    lines = target_p.read_text(encoding="utf-8").splitlines()
+    import os
+    import tempfile
 
-    review_meta = review_meta or {}
-    existing_keys: set[str] = set()
-    key_line_idx: dict[str, int] = {}
+    text = Path(target_path).read_text(encoding="utf-8-sig")
+    json.loads(text)  # reject malformed input before making changes
+    members, tail = _members(text)
+    for member in members:
+        if member.key in updates:
+            member.replace(updates[member.key])
 
-    for i, line in enumerate(lines):
-        m = _KEY_LINE_RE.match(line)
-        if not m:
-            continue
-        indent, raw_key, sep, val_part, trailing = m.groups()
-        key = json.loads(f'"{raw_key}"')
-        if not key.startswith("@"):
-            existing_keys.add(key)
-            key_line_idx[key] = i
-            if key in updates:
-                new_val_json = json.dumps(updates[key], ensure_ascii=False)
-                has_comma = trailing.strip().startswith(",") or val_part.rstrip().endswith(",")
-                comma_str = "," if (has_comma or i < len(lines) - 2) else ""
-                lines[i] = f'{indent}"{raw_key}"{sep}{new_val_json}{comma_str}'
-
-    missing_keys = [k for k in updates if k not in existing_keys]
-    if missing_keys:
-        order_ref = ru_order or list(updates.keys())
-        for mk in missing_keys:
-            new_val_json = json.dumps(updates[mk], ensure_ascii=False)
-            new_line = f'  "{mk}": {new_val_json},'
-            insert_pos = None
-
-            if mk in order_ref:
-                idx_in_ru = order_ref.index(mk)
-                for prev_k in reversed(order_ref[:idx_in_ru]):
-                    if prev_k in key_line_idx:
-                        insert_pos = key_line_idx[prev_k] + 1
-                        while insert_pos < len(lines) and re.match(r'^\s*"@', lines[insert_pos]):
-                            insert_pos += 1
+    existing = {m.key for m in members}
+    reference = ru_order or list(updates)
+    missing = [k for k in reference if k in updates and k not in existing]
+    missing += [k for k in updates if k not in existing and k not in missing]
+    for key in missing:
+        pos = len(members)
+        if key in reference:
+            for prev in reversed(reference[:reference.index(key)]):
+                positions = [i for i, m in enumerate(members) if m.key == prev]
+                if positions:
+                    pos = positions[-1] + 1
+                    while pos < len(members) and members[pos].key == "@" + prev:
+                        pos += 1
+                    break
+            else:
+                for following in reference[reference.index(key) + 1:]:
+                    positions = [i for i, m in enumerate(members) if m.key == following]
+                    if positions:
+                        pos = positions[0]
                         break
+        raw = "\n  " + json.dumps(key, ensure_ascii=False) + ": "
+        members.insert(pos, _Member(key, raw + json.dumps(updates[key], ensure_ascii=False), len(raw)))
 
-            if insert_pos is None:
-                insert_pos = len(lines) - 1
-                while insert_pos > 0 and not lines[insert_pos].strip().startswith("}"):
-                    insert_pos -= 1
-
-            prev_idx = insert_pos - 1
-            while prev_idx >= 0 and not lines[prev_idx].strip():
-                prev_idx -= 1
-            if prev_idx >= 0 and not lines[prev_idx].rstrip().endswith(("{", ",")):
-                lines[prev_idx] = lines[prev_idx].rstrip() + ","
-
-            lines.insert(insert_pos, new_line)
-            for k_idx in key_line_idx:
-                if key_line_idx[k_idx] >= insert_pos:
-                    key_line_idx[k_idx] += 1
-            key_line_idx[mk] = insert_pos
-            existing_keys.add(mk)
-
-    for rk, meta_dict in review_meta.items():
-        if rk not in key_line_idx:
-            continue
-        pos = key_line_idx[rk]
-        if not lines[pos].rstrip().endswith(","):
-            lines[pos] = lines[pos].rstrip() + ","
-
-        if fallback_meta:
-            meta_line = f'  "@@x-reviewed-{rk}": {json.dumps(meta_dict, ensure_ascii=False)},'
+    for key, meta in (review_meta or {}).items():
+        meta_key = ("@@x-reviewed-" if fallback_meta else "@") + key
+        matches = [m for m in members if m.key == meta_key]
+        if matches:
+            for member in matches:
+                member.replace(meta)
         else:
-            meta_line = f'  "@{rk}": {json.dumps(meta_dict, ensure_ascii=False)},'
+            pos = next((i + 1 for i, m in enumerate(members) if m.key == key), None)
+            if pos is not None:
+                raw = "\n  " + json.dumps(meta_key, ensure_ascii=False) + ": "
+                members.insert(pos, _Member(meta_key, raw + json.dumps(meta, ensure_ascii=False), len(raw)))
 
-        if pos + 1 < len(lines) and re.match(rf'^\s*"@{re.escape(rk)}"\s*:', lines[pos + 1]):
-            lines[pos + 1] = meta_line
-        else:
-            lines.insert(pos + 1, meta_line)
-            for k_idx in key_line_idx:
-                if key_line_idx[k_idx] > pos:
-                    key_line_idx[k_idx] += 1
-
-    close_idx = len(lines) - 1
-    while close_idx > 0 and not lines[close_idx].strip().startswith("}"):
-        close_idx -= 1
-    last_item_idx = close_idx - 1
-    while last_item_idx > 0 and not lines[last_item_idx].strip():
-        last_item_idx -= 1
-    if last_item_idx > 0 and lines[last_item_idx].rstrip().endswith(","):
-        lines[last_item_idx] = lines[last_item_idx].rstrip()[:-1]
-
-    out_p.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    output = "{" + ",".join(m.raw for m in members) + (tail or "\n") + "}\n"
+    json.loads(output)
+    out = Path(out_path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    temp = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=out.parent, delete=False) as f:
+            temp = Path(f.name)
+            f.write(output)
+        os.replace(temp, out)
+    finally:
+        if temp is not None and temp.exists():
+            temp.unlink()

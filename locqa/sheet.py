@@ -16,7 +16,7 @@ import sys
 from pathlib import Path
 
 from .models import Context, Finding
-from .suggest import placeholders
+from .validation import validate_text
 
 COLUMNS = [
     "id", "key", "issue_type", "severity", "ru", "en", "kk_сейчас",
@@ -89,8 +89,8 @@ def load_decisions(paths: list[str | Path], ru: dict[str, str]) -> tuple[list[di
         with open(path, encoding="utf-8-sig", newline="") as f:
             for row in csv.DictReader(f):
                 mark = (row.get("решение") or "").strip().lower()
-                own = _uncell(row.get("итоговый_текст")).strip()
-                suggestion = _uncell(row.get("suggestion")).strip()
+                own = _uncell(row.get("итоговый_текст"))
+                suggestion = _uncell(row.get("suggestion"))
                 where = f'{Path(path).name} id={row.get("id")} key={row.get("key")}'
                 if mark in EDIT or (mark in ACCEPT and own):
                     final = own
@@ -99,11 +99,12 @@ def load_decisions(paths: list[str | Path], ru: dict[str, str]) -> tuple[list[di
                 else:
                     continue
                 key = row["key"]
-                if not final:
+                if not final.strip():
                     warnings.append(f"{where}: решение «{mark}», но текста нет — пропущено")
                     continue
-                if key in ru and placeholders(final) != placeholders(ru[key]):
-                    warnings.append(f"{where}: плейсхолдеры не совпадают с ru — пропущено")
+                errors = validate_text(ru[key], final) if key in ru else ["неизвестный ключ"]
+                if errors:
+                    warnings.append(f"{where}: {'; '.join(errors)} — пропущено")
                     continue
                 if key in decisions and decisions[key]["final_text"] != final:
                     warnings.append(f"{where}: для ключа уже есть другое решение ({decisions[key]['finding_id']}) — оставлено первое")
@@ -157,7 +158,7 @@ def main(argv=None) -> int:
     for d in decisions:
         by_reviewer[d["reviewer"]] = by_reviewer.get(d["reviewer"], 0) + 1
     print(f"{a.out}: {len(decisions)} правок, по носителям: {by_reviewer}, предупреждений: {len(warnings)}")
-    return 0
+    return 1 if warnings else 0
 
 
 if __name__ == "__main__":

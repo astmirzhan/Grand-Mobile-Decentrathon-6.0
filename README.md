@@ -1,115 +1,118 @@
 # locqa
 
-Инструмент контроля качества локализации для Flutter ARB-файлов. Находит ошибки перевода, предлагает исправления и собирает исправленный файл только из правок, которые утвердил человек.
+Контроль качества локализации Flutter ARB: кодовые и статистические проверки, точечный LLM-анализ, ревью носителем и воспроизводимая сборка исправлений. Проект для Grand Mobile × Decentrathon 6.0.
 
-Сделан для кейса Grand Mobile × Decentrathon 6.0 «Qazaq Loc QA». Работает на любом ARB, сильнее всего — на казахском.
+## Установка и первый запуск
 
-## Как это работает
-
-```mermaid
-flowchart LR
-    A[ARB-файлы] --> B[Кодовые проверки]
-    A --> C[LLM: кальки и длина]
-    B --> D[Одна находка на ключ]
-    C --> D
-    D --> E[Черновики исправлений]
-    E --> F[report.json и report.html]
-    E --> G[Ревью носителями]
-    G --> H[intl_kk_fixed.arb]
-```
-
-Файл сам служит эталоном: подложенная ошибка — это точечное искажение в согласованном тексте, поэтому редкий вариант рядом с частым виден статистически. LLM подключается только там, где нужен смысл. Без ключа API инструмент работает на кодовых проверках.
-
-## Быстрый старт
-
-Нужен Python 3.10+.
+Python 3.10+; Flutter нужен только для проверки генерации. Исходные данные кейса не входят в код.
 
 ```bash
-pip install ".[dev]"
-
-locqa check --source intl_ru.arb --target intl_kk.arb --glossary glossary.csv --out report.json
+python -m venv .venv
+source .venv/bin/activate
+pip install '.[dev]'
+# Разместите четыре выданных ARB в data/.
+locqa check --source data/intl_ru.arb --target data/intl_kk.arb \
+  --glossary glossary.csv --no-llm --out out/report.json --review-dir out/review
+python scripts/build_review_site.py
 ```
 
-Рядом с `report.json` появятся `report.html` и `report.llm.json` с токенами и стоимостью LLM. Файлы `intl_en.arb` и `intl_uz.arb` рядом с исходником подхватываются сами, с ними проверки точнее.
+Без `--no-llm` используется модель, если настроены credentials; `--offline` читает только кэш. Рядом с отчётом создаются HTML и `.llm.json`: стоимость, полнота LLM-прохода и ошибки модулей. Неполный LLM-проход нельзя представлять как полный анализ. Настройки описаны в [LLM.md](LLM.md).
 
-| Флаг | Что делает |
+`check` поддерживает 11 типов: `untranslated`, `same_as_source`, `wrong_language`, `placeholder_mismatch`, `plural_mismatch`, `suffix_harmony`, `orthography`, `glossary_violation`, `inconsistent_term`, `length_overflow`, `machine_translation_suspect`. Бренды и устоявшиеся заимствования не требуют перевода. ICU допускает `other` без `one`. Имена, число вхождений обычных параметров, printf-параметры и теги защищены общим валидатором.
+
+Смысловые кандидаты LLM первоначально идут на ревью отдельно от строгого отчёта. Финальная сборка включает подтверждённые человеком смысловые ошибки в `machine_translation_suspect`.
+
+## Из разметки в проверенную сдачу
+
+A/B/C — три части данных, а не три независимых носителя. Текущие 405 карточек проверил один носитель (`native_1`). Передавайте каждую часть ровно один раз.
+
+```bash
+python scripts/finalize.py --source data/intl_ru.arb --target data/intl_kk.arb \
+  --reviewed /path/review_A_done.csv /path/review_B_done.csv /path/review_C_done.csv \
+  --reviewer native_1 --out-dir out/final --flutter
+```
+
+При необходимости `--overrides /path/agent_corrections.json` добавляет отдельный список объектов `key, text, issue_type, reason`. Такие исправления получают `x-reviewed: false`, `x-reviewer: agent_review`; они никогда не переопределяют утверждённую носителем правку. После явного подтверждения носителем объект `human_confirmation` с полями `reviewer`, точным `text`, `date` и `evidence` позволяет выставить `x-reviewed: true` и `x-reviewer: native_1`. `--cost-evidence out/final_split.log` сохраняет происхождение исторической оценки расходов, не делает API-запросов.
+
+Сборка проверяет версии CSV относительно обоих ARB, отклоняет дубли частей и конфликтующие решения, сохраняет исходную разметку. Выход публикуется только после успешной проверки; предыдущая папка остаётся рядом как `final.previous-*`.
+
+В `out/final/`:
+
+- `intl_kk_fixed.arb`: исходные игровые ключи, исправления и явные метки ревью;
+- `report.json`, `report.html`: финальные находки и исправления;
+- `decisions.csv`, `agent_decisions.csv`, `agent_corrections.json`: происхождение правок;
+- `review_all_done.csv`, `input_*.csv`: неизменённые решения носителя;
+- `metrics.json`, `precision_sample_100.csv`: метрики на исходных метках, seed 7;
+- `structural_validation.json`, `manifest.json`: проверка всего файла, числа и SHA-256 входов;
+- `cost.json`: расходы финализации и отдельно историческая оценка;
+- `flutter/`: журнал обычного запуска, совместимые копии, карта ключей, сгенерированный Dart.
+
+Текстовые пробелы на границах составных строк сохраняются. Компактные ARB, многострочные метаданные и повторяющиеся `@@comment` поддерживаются. Дубликаты игровых ключей исходной выгрузки перечисляются предупреждениями; эффективное значение — последнее, как у JSON/Flutter.
+
+Низкоуровневые этапы тоже доступны:
+
+```bash
+python -m locqa.sheet import /path/review_A_done.csv /path/review_B_done.csv /path/review_C_done.csv \
+  --source data/intl_ru.arb --out out/decisions.csv
+locqa fix --source data/intl_ru.arb --target data/intl_kk.arb \
+  --decisions out/decisions.csv --out out/intl_kk_fixed.arb
+locqa validate --source data/intl_ru.arb --target out/intl_kk_fixed.arb \
+  --original data/intl_kk.arb --out out/structural.json
+```
+
+Невалидная правка, сбой проверяющего модуля или провал `validate` дают ненулевой exit code. Обычные находки `check` не считаются сбоем процесса; используйте `validate` как строгий структурный барьер.
+
+## Flutter: исходные ключи и совместимая копия
+
+Исходный русский шаблон не проходит стандартный `flutter gen-l10n` из-за трёх идентификаторов. Проверка воспроизводит исходный отказ, затем переименовывает ключи **только в копиях обоих языков**:
+
+| Игровой ключ | Ключ проверочной копии |
 |---|---|
-| без флагов | с LLM, если есть ключ в `.env` |
-| `--no-llm` | только кодовые проверки, без запросов |
-| `--offline` | только готовые ответы из кэша |
-| `--review-dir out/review` | таблицы для носителей |
-
-## Какие ошибки находит
-
-| Тип | Как ловим |
-|---|---|
-| `untranslated` | ключа нет или значение пустое |
-| `same_as_source` | перевод совпадает с ru, кроме брендов, имён и чисел |
-| `wrong_language` | совпадение с узбекским, латиница вместо кириллицы |
-| `placeholder_mismatch` | `{имена}` не совпадают с ru |
-| `plural_mismatch` | сломанные ICU-формы множественного числа |
-| `suffix_harmony` | аффикс приклеен к плейсхолдеру: `{name}-ға` |
-| `orthography` | редкое слово рядом с частым вариантом, латиница внутри кириллицы |
-| `glossary_violation` | термин из ТЗ переведён не по глоссарию |
-| `inconsistent_term` | термин переведён не так, как в остальном файле |
-| `length_overflow` | короткий элемент длиннее и ru, и uz; повторяющийся дописанный хвост |
-| `machine_translation_suspect` | калька: LLM, плюс подменённые имена и числа кодом |
-
-Находки вида «перевод означает другое» в типах кейса нет, поэтому они идут носителям, но не в `report.json`.
-
-## От находок к исправленному файлу
+| `UNeedHelp` | `uNeedHelp` |
+| `TowConfirmDesc` | `towConfirmDesc` |
+| `inventoryEquipped@description` | `inventoryEquippedDescription` |
 
 ```bash
-# 1. таблицы и сайт разметки
-locqa check --source intl_ru.arb --target intl_kk.arb --glossary glossary.csv --out out/report.json --review-dir out/review
-python scripts/build_review_site.py   # читает data/ и out/review, собирает out/review_site/review.html
-
-# 2. носители размечают review.html и присылают review_A_done.csv, review_B_done.csv, review_C_done.csv
-
-# 3. решения и исправленный файл
-python -m locqa.sheet import review_*_done.csv --source intl_ru.arb --out out/decisions.csv
-locqa fix --decisions out/decisions.csv --target intl_kk.arb --source intl_ru.arb --out intl_kk_fixed.arb
+python scripts/validate_flutter.py --source data/intl_ru.arb --target out/final/intl_kk_fixed.arb \
+  --original data/intl_kk.arb --out-dir out/final/flutter
 ```
 
-`fix` меняет только утверждённые строки, сохраняет порядок и разделы `@@comment`, отклоняет правки со сломанными плейсхолдерами и ставит у каждой изменённой строки метку `x-reviewed`.
+Переименования проверяются на коллизии и сохраняются в `key_mapping.json`. Игровой ARB не теряет ключей. Успешный результат совместимой копии не означает, что исходный шаблон компилируется без адаптации. Все плейсхолдеры дополнительно проверяются до запуска Flutter: генератор сам может объединить ошибочные имена параметров.
 
-## Метрики
+## Результаты и их границы
 
-Измеряем сами, потому что валидационной выборки нет.
+Сохранённая человеческая разметка: 405 кандидатов; 378 подтверждений, 24 отклонения, 3 неопределённых решения. Доля подтверждений среди определённых — **94,03%**. Случайная выборка 100 из этого же пула (seed 7): **95/100**. Это повторное использование существующих меток; выборка включает смысловые кандидаты и не является независимым скрытым тестом.
 
-Те же внесённые ошибки на файле кейса, 3 прогона, засчитывается только правильный тип:
+В текущей частной сдаче четыре дополнительные агентские правки подтверждены тем же носителем 31 октября 2026 года. Подтверждения точного текста сохранены в `agent_corrections.json`; первоначальные CSV и метрики не переписываются. Все **382 изменённых значения проверены человеком**, ожидающих подтверждения нет.
 
-| Инструмент | Recall | Типов из 11 |
-|---|---|---|
-| Структурный линтер ARB | 20% | 3 |
-| Базовые правила | 30% | 11 |
-| **locqa без LLM** | **98%** (96–99%) | 11 |
-
-Это наши мутации, а не подложенные организаторами ошибки, поэтому реальный результат может отличаться. Повторить: `python scripts/compare_baselines.py --source intl_ru.arb --target intl_kk.arb --glossary glossary.csv --en intl_en.arb --uz intl_uz.arb --seeds 7,11,23`.
-
-**Precision:** считается по ручной разметке, `python scripts/precision_sample.py score review_A_done.csv`. Цифры появятся после ревью носителями.
-
-## Известные ограничения
-
-- Исходный `intl_ru.arb` клиента не проходит `flutter gen-l10n`: ключи `UNeedHelp`, `TowConfirmDesc` и `inventoryEquipped@description` недопустимы для Flutter. Без этих трёх ключей в шаблоне файл с исправлениями собирается.
-- Точность зависит от модели, в отчёте использованы ответы нескольких моделей: см. `docs/methodology_llm.md`.
-
-## Бонусы
-
-- `scripts/run_uz.py` — кодовая часть проверки узбекского.
-- `scripts/translit_kk.py` — транслитерация в казахскую латиницу с проверкой длины.
-- `suggest` предлагает переформулировку для строк с аффиксом после плейсхолдера.
-- `integrations/flutter/kk_affix` и `locqa/lang/kk_runtime.py` подбирают правильный аффикс для значения прямо в игре: Dart-версия проверяется на общих с Python тестовых векторах.
-
-## Документация и тесты
-
-- `docs/kazakh.md` — казахская часть: глоссарий, проверки, сравнение с альтернативами.
-- `docs/methodology.md` — методы казахских проверок и метрики.
-- `docs/methodology_llm.md` — смысловые проверки, модели, стоимость.
-- `LLM.md` — настройки и модули LLM-части.
+Синтетический recall измеряется отдельно: 11 вариантов мутаций покрывают **7 типов ошибок**, не все 11 типов кейса. Актуальный полный офлайн-baseline: 95% (94–96%) на seeds 7,11,23. Результаты и точный состав детекторов см. [методологию](docs/methodology.md). Recall на подложенных организаторами ошибках неизвестен.
 
 ```bash
-python -m pytest
+python scripts/compare_baselines.py --source data/intl_ru.arb --target data/intl_kk.arb \
+  --glossary glossary.csv --en data/intl_en.arb --uz data/intl_uz.arb \
+  --seeds 7,11,23 --out out/baselines.json
+python scripts/precision_sample.py score out/final/precision_sample_100.csv
 ```
 
-Данные кейса в репозиторий не входят: условия запрещают их публиковать.
+Глоссарий и исключения уточнялись на этих данных, поэтому текущие метрики не являются оценкой на отложенной выборке. Историческая стоимость $7.0484 из сохранённого лога — оценка одного прохода с кэшем, не общий счёт провайдера. Финализация выполняется офлайн, новых платных запросов не делает.
+
+## Проверки, CI и бонусы
+
+```bash
+python -m pytest -q
+python scripts/validate_tracked_arb.py
+# из integrations/flutter/kk_affix:
+dart run test/parity_test.dart
+```
+
+GitHub Action `.github/workflows/locqa.yml` запускает тесты и проверяет пары ARB на PR; секреты и API не нужны. Для закрытых данных полный Flutter-прогон выполняется локально командой выше.
+
+Бонусы: `scripts/run_uz.py` (структурная проверка uz), `scripts/translit_kk.py` (выбранная таблица казахской латиницы), Dart/Python `kk_affix` (343 общих вектора). Транслитерация экспериментальная: текущий юридический статус алфавита не заявляется. Для узбекского отсутствует отдельная полная лингвистическая модель.
+
+## Упаковка
+
+```bash
+python scripts/package_submission.py --final-dir out/final --out-dir out/submission
+```
+
+Создаются архив кода и **отдельный частный** архив результатов для организаторов, плюс SHA-256. Данные кейса, CSV и производные отчёты не должны попадать в публичный репозиторий. Упаковка включает незакоммиченные исходники и ничего не коммитит, не пушит и не отправляет.

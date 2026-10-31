@@ -1,0 +1,6 @@
+{
+  "@@locale": "ru",
+  "hello": "Здравствуйте, {name}",
+  "count": "{n, plural, one {# предмет} other {# предметов}}",
+  "button": "Открыть"
+}

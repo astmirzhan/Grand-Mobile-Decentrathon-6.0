@@ -52,14 +52,22 @@ def _only(check, types):
     return filtered
 
 
+def _offline_length(ctx):
+    from locqa.checks import llm_checks
+    from locqa.llm import LLM
+    return llm_checks.check(ctx, LLM(enabled=False))
+
+
 def tools():
     basic, kazakh, signals = (_module_check(n) for n in ("basic", "kazakh", "signals"))
     out = {}
     if basic:
         out["structural linter"] = ([_only(basic, STRUCTURAL_TYPES)], STRUCTURAL_TYPES)
-        out["basic rules"] = ([basic], None)
-    full = [c for c in (basic, kazakh, signals) if c]
-    out["locqa, no LLM"] = (full, None)
+        out["basic rules"] = ([basic], STRUCTURAL_TYPES | {"same_as_source", "wrong_language", "orthography"})
+    full = [c for c in (basic, kazakh, signals) if c] + [_offline_length]
+    out["locqa, no LLM"] = (full, STRUCTURAL_TYPES | {"same_as_source", "wrong_language", "orthography",
+                                                        "suffix_harmony", "glossary_violation", "inconsistent_term",
+                                                        "machine_translation_suspect", "length_overflow"})
     return out
 
 

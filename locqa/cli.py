@@ -92,6 +92,7 @@ def cmd_check(args: argparse.Namespace) -> int:
     )
 
     all_findings: list[Finding] = []
+    failures = []
     for mod_name, check_fn in discover_checks():
         try:
             res = check_fn(ctx)
@@ -99,6 +100,7 @@ def cmd_check(args: argparse.Namespace) -> int:
                 all_findings.extend(res)
                 print(f"[OK] {mod_name}: найдено {len(res)}")
         except Exception as exc:
+            failures.append(mod_name)
             print(f"[ERROR] Ошибка в модуле проверки {mod_name}: {exc}", file=sys.stderr)
 
     # --no-llm отключает только запросы: кодовые доказательства (повторяющиеся хвосты) работают всегда
@@ -136,7 +138,7 @@ def cmd_check(args: argparse.Namespace) -> int:
     # стоимость LLM — требование ТЗ; report.json остаётся списком находок по схеме кейса
     summary_path = json_path.with_suffix(".llm.json")
     summary_path.write_text(
-        json.dumps({"llm": llm.summary(), "suggest": suggest_stats, "meaning_for_review": len(meaning)},
+        json.dumps({"llm": llm.summary(), "suggest": suggest_stats, "meaning_for_review": len(meaning), "failed_checks": failures},
                    ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
@@ -145,7 +147,7 @@ def cmd_check(args: argparse.Namespace) -> int:
             print(f"Таблица ревью: {path}")
 
     print(f"Итого после дедупликации (resolve): {len(resolved)} проблем. Отчёты: {json_path}, {html_path}")
-    return 0
+    return 1 if failures else 0
 
 
 def cmd_fix(args: argparse.Namespace) -> int:
@@ -158,7 +160,18 @@ def cmd_fix(args: argparse.Namespace) -> int:
         fallback_meta=args.fallback_meta,
     )
     print(f"Применено правок: {applied}, пропущено/отклонено защитой: {skipped}. Результат: {args.out}")
-    return 0
+    return 1 if skipped else 0
+
+
+def cmd_validate(args: argparse.Namespace) -> int:
+    from locqa.validation import validate_files
+    result = validate_files(args.source, args.target, args.original)
+    payload = json.dumps(result, ensure_ascii=False, indent=2) + "\n"
+    if args.out:
+        Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.out).write_text(payload, encoding="utf-8")
+    print(payload)
+    return 0 if result["valid"] else 1
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -186,6 +199,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_fix.add_argument("--fallback-meta", action="store_true", help="Использовать @@x-reviewed вместо @key")
     p_fix.set_defaults(func=cmd_fix)
 
+    p_validate = subparsers.add_parser("validate", help="Проверить весь итоговый ARB, параметры, ICU и метки ревью")
+    p_validate.add_argument("--source", required=True)
+    p_validate.add_argument("--target", required=True)
+    p_validate.add_argument("--original")
+    p_validate.add_argument("--out")
+    p_validate.set_defaults(func=cmd_validate)
     return parser
 
 

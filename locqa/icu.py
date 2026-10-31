@@ -16,7 +16,10 @@ def check_balanced_braces(s: str) -> bool:
             if i + 1 < len(s) and s[i + 1] == "'":
                 i += 2
                 continue
-            in_quote = not in_quote
+            if in_quote:
+                in_quote = False
+            elif i + 1 < len(s) and s[i + 1] in "{}#":
+                in_quote = True
         elif not in_quote:
             if ch == "{":
                 depth += 1
@@ -41,7 +44,10 @@ def _iter_brace_blocks(s: str) -> list[str]:
             if i + 1 < len(s) and s[i + 1] == "'":
                 i += 2
                 continue
-            in_quote = not in_quote
+            if in_quote:
+                in_quote = False
+            elif i + 1 < len(s) and s[i + 1] in "{}#":
+                in_quote = True
         elif not in_quote:
             if ch == "{":
                 if depth == 0:
@@ -76,35 +82,40 @@ def extract_placeholders(s: str) -> set[str]:
 
 
 def _extract_plural_categories(body: str) -> dict[str, str]:
-    """Парсит ветки вида `one {...} other {...}` внутри тела plural/select."""
+    """Parse ICU branches; reject duplicate selectors and unconsumed syntax."""
     categories: dict[str, str] = {}
-    i = 0
-    n = len(body)
-    while i < n:
-        while i < n and body[i].isspace():
-            i += 1
-        if i >= n:
+    pos = 0
+    offset = re.match(r"\s*offset:\s*\d+\s*", body)
+    if offset:
+        pos = offset.end()
+    while pos < len(body):
+        if not body[pos:].strip():
             break
-        key_start = i
-        while i < n and not body[i].isspace() and body[i] != "{":
-            i += 1
-        cat_key = body[key_start:i].strip()
-        while i < n and body[i].isspace():
-            i += 1
-        if i >= n or body[i] != "{":
-            break
-        depth = 0
-        block_start = i + 1
-        while i < n:
-            if body[i] == "{":
-                depth += 1
-            elif body[i] == "}":
-                depth -= 1
-                if depth == 0:
-                    categories[cat_key] = body[block_start:i]
-                    i += 1
-                    break
-            i += 1
+        match = re.match(r"\s*(=?[\w.-]+)\s*\{", body[pos:])
+        if not match:
+            return {}
+        key = match.group(1)
+        if key in categories:
+            return {}
+        opening = pos + match.end() - 1
+        depth, quoted, end = 1, False, opening + 1
+        while end < len(body) and depth:
+            ch = body[end]
+            if ch == "'":
+                if end + 1 < len(body) and body[end + 1] == "'":
+                    end += 2
+                    continue
+                if quoted:
+                    quoted = False
+                elif end + 1 < len(body) and body[end + 1] in "{}#":
+                    quoted = True
+            elif not quoted:
+                depth += (ch == "{") - (ch == "}")
+            end += 1
+        if depth:
+            return {}
+        categories[key] = body[opening + 1:end - 1]
+        pos = end
     return categories
 
 
@@ -119,7 +130,7 @@ def has_icu_complex(s: str) -> bool:
 def validate_plural(s: str, lang: str = "kk") -> list[str]:
     """
     Проверяет сбалансированность скобок и наличие обязательных CLDR-форм в plural/select.
-    Для kk требуются формы `one` и `other`.
+    Ветка `other` обязательна; `one` необязательна (как в Flutter).
     """
     errors: list[str] = []
     if not check_balanced_braces(s):
@@ -143,14 +154,13 @@ def validate_plural(s: str, lang: str = "kk") -> list[str]:
             errors.append(f"Не удалось разобрать ветки {kind} для переменной '{var_name}'")
             continue
 
+        if kind in ("plural", "selectordinal"):
+            allowed = {"zero", "one", "two", "few", "many", "other"}
+            invalid = [c for c in categories if c not in allowed and not re.fullmatch(r"=\d+", c)]
+            if invalid:
+                errors.append(f"Недопустимые ветки {kind}: {invalid}")
         if "other" not in categories:
             errors.append(f"В {kind} ({var_name}) отсутствует обязательная форма 'other'")
-
-        if kind == "plural" and lang == "kk":
-            if "one" not in categories:
-                errors.append(
-                    f"Для казахского языка (kk) по CLDR в plural ({var_name}) нужна форма 'one' и 'other' (найдены: { sorted(categories.keys()) })"
-                )
 
         # Рекурсивная проверка вложенных веток
         for cat_name, cat_body in categories.items():

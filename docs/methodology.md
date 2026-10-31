@@ -60,113 +60,91 @@ established variant, not a seeded error. Such cases go to `glossary_audit()` for
 * `brands.txt`: names that stay untranslated (Grand Mobile, Grand Coins, GC, VIP…), used by
   `same_as_source`.
 
-## Measuring quality
+## Measuring quality and review provenance
 
-There is no validation set, so we measure ourselves.
+The native review consists of 405 distinct candidates in three parts, all checked by one
+Kazakh native speaker (`native_1`). The part labels A/B/C are assignment partitions, not
+independent reviewers. Exact original CSVs and their SHA-256 hashes are retained privately.
 
-### Recall: mutation test (`scripts/mutate_kk.py`)
+| Original label | Count |
+|---|---:|
+| Confirmed, correct type | 378 |
+| Rejected | 24 |
+| Unresolved | 3 |
 
-We take strings the tool considers clean, inject known errors and check that they are found
-**with the right type**. One mutation per string, at most 2 per glossary term (as in a real
-seeded set), only where ru really contains the term. The mutations imitate the errors we saw
-in the seeded file:
+Agreement among labelled candidates is 378/402 = **94.03%**. A deterministic random sample
+of 100 original candidates (seed 7) has 95 confirmations and 5 rejections. This reuses the
+native labels; it is neither independent validation nor hidden-test precision. Semantic
+candidates that were originally review-only are included in this population.
 
-| Variant | Example | Expected type |
-|---|---|---|
-| russian_letter | қайта → кайта | orthography |
-| latin_homoglyph | бөліміне → бөлімiне (Latin i) | orthography |
-| affix_hyphen / affix_plain | {name} кірді → {name}-ға / {name}ға | suffix_harmony |
-| strict_synonym | отбасы → жанұя | glossary_violation |
-| strict_russian_left | отбасы → семьи | glossary_violation |
-| rival_synonym | ойыншы → ойнаушы | inconsistent_term |
-| russian_left | сыйлықтары → награды | inconsistent_term |
-| broken_placeholder, empty, uzbek_text | {count} → {counts}, "", text from intl_uz | basic types |
+Human review by type (before filtering or agent corrections):
 
-Cases that are not term errors are skipped: the Russian form equals the Kazakh term (*баланс*),
-is an allowed variant, or the string is a single word (that is `same_as_source`).
+| Type | Confirmed | Rejected | Unresolved |
+|---|---:|---:|---:|
+| machine_translation_suspect | 259 | 16 | 2 |
+| placeholder_mismatch | 11 | 1 | 0 |
+| same_as_source | 26 | 7 | 0 |
+| suffix_harmony | 8 | 0 | 0 |
+| untranslated | 16 | 0 | 0 |
+| wrong_language | 13 | 0 | 0 |
+| inconsistent_term | 13 | 0 | 0 |
+| length_overflow | 10 | 0 | 1 |
+| orthography | 22 | 0 | 0 |
 
-Full pipeline (merged code, 8 mutations per variant, 3 seeds, 86 errors per run):
+Four additional agent corrections address a rejected placeholder typo and the three
+unresolved strings. The same native speaker explicitly confirmed all four on 2026-10-31.
+Text-bound confirmation records are preserved in agent_corrections.json; original CSV labels
+and historical metrics are never rewritten. All 382 changed values now carry `x-reviewed: true`
+and reviewer `native_1`. No changes await native confirmation.
 
-| Type | Recall (typed), mean | Range |
-|---|---|---|
-| orthography | 98% | 94–100% |
-| suffix_harmony | 100% | 100% |
-| glossary_violation | 100% | 100% |
-| inconsistent_term | 96% | 94–100% |
-| placeholder_mismatch / untranslated / wrong_language | 100% | 100% |
-| **total** | **99%** | 97–100% |
+### Synthetic recall
 
-Remaining misses are honest limits: *әр → ар* (*ар* is itself a Kazakh word), a Russian word
-inside a long Kazakh sentence when the term is not near-unanimous, and single-word strings
-that `resolve` correctly reports as `same_as_source`.
+`scripts/compare_baselines.py` uses the same mutations and seeds 7,11,23 for every detector.
+There are 11 mutation variants but **7 expected issue types**: orthography, suffix_harmony,
+glossary_violation, inconsistent_term, placeholder_mismatch, untranslated and wrong_language.
+Do not confuse variant count with taxonomic coverage. The generator starts from strings
+considered clean by the reference detector; the resulting distribution favours these rules.
+Glossary rules, allowlists and thresholds were tuned on the case data, so this is not a holdout.
 
-### False alarms on a clean third-party file
+Refreshed results, seeds 7,11,23:
 
-Flutter's own `material/cupertino/widgets` Kazakh localizations (203 strings, BSD license,
-ICU plurals, not part of the repo) contain no seeded errors. The Kazakh checks ran without
-changes and reported 2 findings, both real errors in Flutter's translation: Latin `c` in
-*«тыc»* and Latin `M` in *«Mинут»*. **0 false alarms.** The statistical checks need a large file
-to work, so on 200 strings only the deterministic part fires, which is the expected behaviour.
+| Detector | Typed synthetic recall | Capable issue types | Findings on original case file |
+|---|---|---|---:|
+| Structural baseline | 20% | 3/11 | 28 |
+| Basic rules | 30% (29–30%) | 6/11 | 67 |
+| Full offline locqa | 95% (94–96%) | 11/11 | 134 |
 
-### Comparison with alternatives (`scripts/compare_baselines.py`)
+The full offline baseline now includes deterministic length checks, so its clean mutation
+pool differs from older runs. The previous 98% table used basic+Kazakh+signals without
+these length checks and is not the current full-baseline result. The refreshed machine-readable
+results are `out/baselines_updated.json` in the private workspace. Capability counts are explicit sets, separate from types actually found in the
+mutation test. The full offline baseline includes deterministic appended-tail detection.
+Recall on the organizers' hidden planted errors is unknown.
 
-All tools get exactly the same injected errors (11 variants, 8 each, 3 seeds), the same real
-file and the same clean third-party file (Flutter's Kazakh localizations, 203 strings).
-"Structural linter" is what ready-made Flutter ARB linters check (missing strings,
-placeholders, plurals).
+### Structural safety and reproducibility
 
-| Tool | Recall, typed | Issue types | Findings on real file | Findings on clean file |
-|---|---|---|---|---|
-| Structural linter | 20% | 3 of 11 | 28 | 16 → 0* |
-| Basic rules (any language) | 30% | 11 of 11 | 77 | 20 → 4* |
-| **locqa, no LLM** | **98%** (96–99%) | 11 of 11 | 135 | 22 → 6* |
+`locqa validate` checks the **whole** final ARB: names and ordinary placeholder multiplicity,
+printf parameters, markup tags, ICU grammar and explicit review metadata for changed values.
+Only `other` is mandatory for a plural; one/zero/etc are optional selectors. Apostrophes in
+ordinary words do not hide following placeholders. Compact input and multiline metadata are
+updated as complete JSON values. Untouched sections and values survive; output replacement
+is atomic. Input resource duplicates are warnings with last-value semantics, documented in
+`structural_validation.json`.
 
-\* with `locqa/lang/plural.py`: Flutter stores plural forms as separate keys
-(`...Few`, `...Many`). Russian has these forms, Kazakh does not (CLDR: one, other), so their
-absence is not a missing translation. 16 of the 22 clean-file findings were such keys. Of the
-remaining 6, two are real errors in Flutter's translation (Latin letters), three are English
-key names left untranslated (`Eject`, `Select`, `Num Enter`), one is a loanword (*1 лицензия*).
+`finalize.py` checks CSV/source version alignment, rejects duplicate input parts and publishes
+only a complete validated build. It preserves the previous result directory. `validate_flutter.py`
+first records the original-template failure, then runs standard Flutter on explicit compatible
+copies. Original game resource names remain in the main deliverable; three renamed identifiers
+are listed in `flutter/key_mapping.json`. No keys are silently dropped.
 
-An "LLM only" baseline (re-translate or re-check every string) is not in the table: it needs a
-paid API run over 5,500 strings, and the case brief rules it out as a solution. LLM checks in
-locqa run only on top of these results; their cost is reported by the pipeline.
+### Costs and language bonuses
 
-### Precision: manual labelling (`scripts/precision_sample.py`)
+Finalization and validation use no paid LLM calls. Historical `final_split.log` records an
+estimated $7.0484 including cached answers for one incomplete pass. This is not a verified
+billing total, and repeated cache/run totals must not be added. Provider and GPU invoices were
+not available. `cost.json` records this uncertainty and a hash of the evidence log.
 
-A random sample of findings is labelled by a native speaker: `1` = real error of this type,
-`0` = false alarm, `t` = real error with wrong type.
-
-| Type | Findings on real file | Labelled | Precision |
-|---|---|---|---|
-| orthography | 19 | TBD | TBD |
-| suffix_harmony | 8 | TBD | TBD |
-| inconsistent_term | 14 | TBD | TBD |
-| glossary_violation | 0 | – | – |
-
-Before tuning, the glossary checks produced 116 findings on the real file, mostly legitimate
-paraphrases; after the "established alternative" and strict/non-strict rules — 14
-(rival clusters are counted over distinct texts, so duplicated strings do not create a fake rival).
-Rule-based rewording covers 6 of 8 `suffix_harmony` findings.
-
-### Native-speaker review
-
-| Reviewer | Strings reviewed |
-|---|---|
-| Person 3 (kk) | TBD |
-
-## Bonus: Latin transliteration (`scripts/translit_kk.py`)
-
-Official Kazakh Latin alphabet (2021 revision): ә→ä, ғ→ğ, қ→q, ң→ñ, ө→ö, ұ→ū, ү→ü, ш→ş,
-ы→y, і→ı, и/й→i (İ in uppercase). Placeholders and tags are untouched; the ARB is rewritten
-line by line so `@@comment` sections survive. Strings that grow by > 10% and ≥ 3 characters
-(ц→ts, ч→ch, ю→iu, я→ia) are reported for UI length review: 7 strings in the real file.
-
-## Reproduce
-
-```
-python -m pytest tests/
-python scripts/mutate_kk.py --source intl_ru.arb --target intl_kk.arb --glossary glossary.csv --seed 7
-python scripts/precision_sample.py sample --source intl_ru.arb --target intl_kk.arb --glossary glossary.csv --out sample.csv
-python scripts/precision_sample.py score sample.csv
-python scripts/translit_kk.py intl_kk.arb --out intl_kk_latn.arb --report growth.csv
-```
+The Latin transliterator implements the project's chosen 2021-style mapping; we do not claim
+it is the currently enacted official alphabet. It preserves placeholders/tags and reports growth.
+The Uzbek bonus is structural only. Dart/Python affix selection matches on 343 shared vectors;
+this parity check is not an independent linguistic assessment of every suffix rule.

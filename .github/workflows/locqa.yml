@@ -1,0 +1,22 @@
+name: Localization QA
+on:
+  pull_request:
+    paths: ['**/*.arb', 'locqa/**', 'scripts/**', 'tests/**', 'pyproject.toml', '.github/workflows/locqa.yml']
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install '.[dev]'
+      - run: python -m pytest -q
+      - run: python scripts/validate_tracked_arb.py
+      - run: locqa check --source tests/fixtures/localizations/intl_ru.arb --target tests/fixtures/localizations/intl_kk.arb --no-llm --out out/ci/report.json
+      - run: locqa validate --source tests/fixtures/localizations/intl_ru.arb --target tests/fixtures/localizations/intl_kk.arb

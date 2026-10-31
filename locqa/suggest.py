@@ -13,6 +13,7 @@ from . import glossary as gl
 from .lang.kk import SUFFIXES
 from .llm import LLM, get_llm, row_context
 from .models import Context, Finding
+from .validation import validate_text
 
 PLACEHOLDER = re.compile(r"\{(\w+)\}")
 UI_TOKENS = {"button", "btn", "tab", "title", "label", "header", "action"}
@@ -76,6 +77,9 @@ def validate(ru: str, kk_old: str, cand: str | None, issue_type: str, key: str) 
         return "вариант совпадает с ru — это не перевод"
     if placeholders(cand) != placeholders(ru):
         return "плейсхолдеры не совпадают с ru"
+    structural = validate_text(ru, cand)
+    if structural:
+        return "; ".join(structural)
     if suffix_after_placeholder(cand):
         return "аффикс сразу после плейсхолдера"
     short_ui = issue_type == "length_overflow" or (bool(key_tokens(key) & UI_TOKENS) and len(ru.split()) <= 3)

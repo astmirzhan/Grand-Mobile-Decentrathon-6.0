@@ -57,7 +57,7 @@ def cmd_sample(args):
 
 
 def cmd_score(args):
-    rows = list(csv.DictReader(open(args.sample, encoding="utf-8")))
+    rows = list(csv.DictReader(open(args.sample, encoding="utf-8-sig")))
     per_type = defaultdict(lambda: [0, 0])
     unlabeled = 0
     for r in rows:

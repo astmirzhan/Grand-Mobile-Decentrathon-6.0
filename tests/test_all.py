@@ -39,10 +39,10 @@ def test_icu_placeholders_and_plural_validation() -> None:
     assert extract_placeholders(s) == {"count", "user"}
     assert validate_plural(s, lang="kk") == []
 
-    # Отсутствует форма one для kk
+    # Flutter accepts an other-only plural; one is optional.
     missing_one = "{count, plural, other {{count} элемент}}"
     errs = validate_plural(missing_one, lang="kk")
-    assert any("one" in e for e in errs)
+    assert errs == []
 
     # Несбалансированные скобки
     broken = "{count, plural, one {{count} элемент} other {{count} элементов}"
@@ -65,7 +65,7 @@ def test_basic_checks_all_five_types() -> None:
             "k_brand": "Kaspi Gold",  # бренд — не должно быть ошибкой
             "k_uz": "Hisobni to'lash",
             "k_ph": "Сәлем, {name}!",
-            "k_plural": "{count, plural, other {{count} күн}}",
+            "k_plural": "{count, plural, one {{count} күн}}",
         },
         uz={"k_uz": "Hisobni to'lash"},
         order=["k_untrans", "k_same", "k_brand", "k_uz", "k_ph", "k_plural"],
@@ -144,3 +144,24 @@ def test_unused_plural_form_is_not_untranslated() -> None:
     )
     untranslated = {f.key for f in basic_check(ctx) if f.issue_type == "untranslated"}
     assert untranslated == {"title"}
+
+
+def test_apply_review_uses_human_verdicts() -> None:
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
+    from apply_review import apply_review
+
+    base = {"severity": "medium", "source": "ru", "target": "kk", "evidence": "ev", "suggestion": "s", "confidence": 0.9}
+    report = [{"key": "real", "issue_type": "orthography", **base}, {"key": "false", "issue_type": "orthography", **base},
+              {"key": "open", "issue_type": "orthography", **base}]
+    row = {"ru": "ru", "kk_сейчас": "kk", "evidence": "другой смысл", "severity": "low", "suggestion": "s"}
+    reviewed = {
+        ("real", "orthography"): {**row, "key": "real", "issue_type": "orthography", "verdict": "1", "итоговый_текст": "свой"},
+        ("false", "orthography"): {**row, "key": "false", "issue_type": "orthography", "verdict": "0"},
+        ("extra", "machine_translation_suspect"): {**row, "key": "extra", "issue_type": "machine_translation_suspect", "verdict": "1"},
+        ("drop", "machine_translation_suspect"): {**row, "key": "drop", "issue_type": "machine_translation_suspect", "verdict": "0"},
+    }
+    out = {f.key: f for f in apply_review(report, reviewed)}
+    assert set(out) == {"real", "open", "extra"}
+    assert out["real"].reviewed_by_human and out["real"].suggestion == "свой"
+    assert out["extra"].reviewed_by_human and not out["open"].reviewed_by_human

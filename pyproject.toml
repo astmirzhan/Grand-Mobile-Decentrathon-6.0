@@ -20,3 +20,6 @@ locqa = "locqa.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["locqa*"]
+
+[tool.setuptools.package-data]
+locqa = ["review_template.html"]

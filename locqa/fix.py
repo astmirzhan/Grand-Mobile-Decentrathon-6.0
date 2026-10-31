@@ -6,14 +6,14 @@ from pathlib import Path
 from typing import Any
 
 from locqa.arb import load_arb, update_arb_file
-from locqa.icu import check_balanced_braces, extract_placeholders
+from locqa.validation import validate_text
 
 
-def _pick_col(row: dict[str, str], candidates: tuple[str, ...]) -> str:
+def _pick_col(row: dict[str, str], candidates: tuple[str, ...], strip: bool = True) -> str:
     for c in candidates:
         for k, v in row.items():
             if k and k.strip().lower() == c.lower():
-                return (v or "").strip()
+                return (v or "").strip() if strip else (v or "")
     return ""
 
 
@@ -42,10 +42,10 @@ def apply_decisions(
         for row in reader:
             key = _pick_col(row, ("key", "ключ"))
             decision = _pick_col(row, ("decision", "status", "решение", "статус"))
-            suggestion = _pick_col(row, ("suggestion", "предложение"))
-            final_text = _pick_col(row, ("итоговый_текст", "final_text", "final", "итог"))
+            suggestion = _pick_col(row, ("suggestion", "предложение"), strip=False)
+            final_text = _pick_col(row, ("итоговый_текст", "final_text", "final", "итог"), strip=False)
             issue_type = _pick_col(row, ("issue_type", "тип", "issue")) or "manual_review"
-            reviewer = _pick_col(row, ("reviewer", "ревьюер")) or default_reviewer
+            reviewer = _pick_col(row, ("reviewer", "ревьюер", "кто_проверил")) or default_reviewer
 
             if not key:
                 continue
@@ -56,47 +56,36 @@ def apply_decisions(
             if not decision:
                 new_text = final_text
             elif "✅" in decision:
-                new_text = suggestion
+                new_text = final_text if final_text.strip() else suggestion
             elif "✏️" in decision or "✏" in decision:
                 new_text = final_text
             else:
                 continue
 
-            if not new_text:
+            if not new_text.strip():
                 print(f"[WARN] Ключ '{key}': пустой текст для решения {decision}, пропуск.", file=sys.stderr)
                 skipped += 1
                 continue
 
-            # Защита: проверяем баланс скобок и совпадение плейсхолдеров с ru
-            if not check_balanced_braces(new_text):
-                print(
-                    f"[WARN] Ключ '{key}': несбалансированные фигурные скобки в '{new_text}', правка отклонена!",
-                    file=sys.stderr,
-                )
+            if ru_doc and key not in ru_doc.values:
+                print(f"[WARN] Неизвестный ключ '{key}', пропуск.", file=sys.stderr)
                 skipped += 1
                 continue
-
-            ref_source = (
-                ru_doc.values.get(key)
-                if ru_doc and key in ru_doc.values
-                else _pick_col(row, ("source", "ru"))
-            )
-            if ref_source:
-                ru_ph = extract_placeholders(ref_source)
-                new_ph = extract_placeholders(new_text)
-                if ru_ph != new_ph:
-                    print(
-                        f"[WARN] Ключ '{key}': не совпали плейсхолдеры! В ru {sorted(ru_ph)}, в правке {sorted(new_ph)}. Правка отклонена!",
-                        file=sys.stderr,
-                    )
-                    skipped += 1
-                    continue
-
+            ref_source = ru_doc.values[key] if ru_doc else _pick_col(row, ("source", "ru"), strip=False)
+            errors = validate_text(ref_source, new_text)
+            if errors:
+                print(f"[WARN] {key}: {'; '.join(errors)} — правка отклонена", file=sys.stderr)
+                skipped += 1
+                continue
+            if key in updates and updates[key] != new_text:
+                raise ValueError(f"Conflicting decisions for {key}")
+            if kk_doc.values.get(key) == new_text:
+                continue
             updates[key] = new_text
             existing_meta = dict(kk_doc.meta.get(key, {}))
             existing_meta.update(
                 {
-                    "x-reviewed": True,
+                    "x-reviewed": (row.get("reviewed_by_human", "true").lower() == "true"),
                     "x-reviewer": reviewer,
                     "x-issue": issue_type,
                 }

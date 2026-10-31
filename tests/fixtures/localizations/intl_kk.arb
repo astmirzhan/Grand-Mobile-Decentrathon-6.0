@@ -1,0 +1,6 @@
+{
+  "@@locale": "kk",
+  "hello": "Сәлем, {name}",
+  "count": "{n, plural, other {# зат}}",
+  "button": "Ашу"
+}

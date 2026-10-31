@@ -30,6 +30,11 @@ RU_NUMBER_WORDS = {
     "4": ("четыр",), "5": ("пят",), "6": ("шест",), "7": ("сем",), "8": ("восем", "восьм"), "9": ("девят",),
     "10": ("десят",), "100": ("сто",), "1000": ("тысяч",),
 }
+KK_NUMBER_WORDS = {
+    "1": ("бір",), "2": ("екі",), "3": ("үш",), "4": ("төрт",), "5": ("бес",),
+    "6": ("алты",), "7": ("жеті",), "8": ("сегіз",), "9": ("тоғыз",), "10": ("он",),
+    "100": ("жүз",), "1000": ("мың",),
+}
 _TRANSLIT = str.maketrans({
     "a": "а", "b": "б", "c": "к", "d": "д", "e": "е", "f": "ф", "g": "г", "h": "х", "i": "и", "j": "дж",
     "k": "к", "l": "л", "m": "м", "n": "н", "o": "о", "p": "п", "q": "к", "r": "р", "s": "с", "t": "т",
@@ -91,7 +96,7 @@ def brand_mismatch(ctx: Context) -> list[Finding]:
         uz = _latin(ctx.uz.get(key, ""))
         names = _names(ru)
         # имя считаем брендом, если его сохранил и узбекский перевод (обычные слова он переводит)
-        brands = [names[t] for t in lost if t in names and t in uz and not _translit_present(t, kk)]
+        brands = [names[t] for t in lost if t not in {"roleplay"} and t in names and t in uz and not _translit_present(t, kk)]
         if not brands:
             continue
         kk_names = _names(kk)
@@ -115,7 +120,9 @@ def number_mismatch(ctx: Context) -> list[Finding]:
         low = ru.lower()
         # kk-цифра, записанная в ru словом, — не ошибка
         extra = Counter({n: c for n, c in (b - a).items() if not any(w in low for w in RU_NUMBER_WORDS.get(n, ()))})
-        missing = a - b
+        target_words = WORD.findall(kk.lower())
+        missing = Counter({n: c for n, c in (a - b).items()
+                           if not any(w in target_words for w in KK_NUMBER_WORDS.get(n, ()))})
         if not extra and not missing:
             continue
         parts = []
