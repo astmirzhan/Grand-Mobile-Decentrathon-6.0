@@ -1,0 +1,7 @@
+name: kk_affix
+description: Correct Kazakh case affixes for values inserted into localized strings at runtime.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"

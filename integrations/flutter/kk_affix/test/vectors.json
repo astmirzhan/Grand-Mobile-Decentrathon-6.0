@@ -1,0 +1,1717 @@
+[
+ {
+  "value": "Айдос",
+  "case": "dative",
+  "expected": "Айдосқа"
+ },
+ {
+  "value": "Айдос",
+  "case": "locative",
+  "expected": "Айдоста"
+ },
+ {
+  "value": "Айдос",
+  "case": "ablative",
+  "expected": "Айдостан"
+ },
+ {
+  "value": "Айдос",
+  "case": "genitive",
+  "expected": "Айдостың"
+ },
+ {
+  "value": "Айдос",
+  "case": "accusative",
+  "expected": "Айдосты"
+ },
+ {
+  "value": "Айдос",
+  "case": "instrumental",
+  "expected": "Айдоспен"
+ },
+ {
+  "value": "Айдос",
+  "case": "plural",
+  "expected": "Айдостар"
+ },
+ {
+  "value": "Әлия",
+  "case": "dative",
+  "expected": "Әлияға"
+ },
+ {
+  "value": "Әлия",
+  "case": "locative",
+  "expected": "Әлияда"
+ },
+ {
+  "value": "Әлия",
+  "case": "ablative",
+  "expected": "Әлиядан"
+ },
+ {
+  "value": "Әлия",
+  "case": "genitive",
+  "expected": "Әлияның"
+ },
+ {
+  "value": "Әлия",
+  "case": "accusative",
+  "expected": "Әлияны"
+ },
+ {
+  "value": "Әлия",
+  "case": "instrumental",
+  "expected": "Әлиямен"
+ },
+ {
+  "value": "Әлия",
+  "case": "plural",
+  "expected": "Әлиялар"
+ },
+ {
+  "value": "Айгерім",
+  "case": "dative",
+  "expected": "Айгерімге"
+ },
+ {
+  "value": "Айгерім",
+  "case": "locative",
+  "expected": "Айгерімде"
+ },
+ {
+  "value": "Айгерім",
+  "case": "ablative",
+  "expected": "Айгерімнен"
+ },
+ {
+  "value": "Айгерім",
+  "case": "genitive",
+  "expected": "Айгерімнің"
+ },
+ {
+  "value": "Айгерім",
+  "case": "accusative",
+  "expected": "Айгерімді"
+ },
+ {
+  "value": "Айгерім",
+  "case": "instrumental",
+  "expected": "Айгеріммен"
+ },
+ {
+  "value": "Айгерім",
+  "case": "plural",
+  "expected": "Айгерімдер"
+ },
+ {
+  "value": "Мадина",
+  "case": "dative",
+  "expected": "Мадинаға"
+ },
+ {
+  "value": "Мадина",
+  "case": "locative",
+  "expected": "Мадинада"
+ },
+ {
+  "value": "Мадина",
+  "case": "ablative",
+  "expected": "Мадинадан"
+ },
+ {
+  "value": "Мадина",
+  "case": "genitive",
+  "expected": "Мадинаның"
+ },
+ {
+  "value": "Мадина",
+  "case": "accusative",
+  "expected": "Мадинаны"
+ },
+ {
+  "value": "Мадина",
+  "case": "instrumental",
+  "expected": "Мадинамен"
+ },
+ {
+  "value": "Мадина",
+  "case": "plural",
+  "expected": "Мадиналар"
+ },
+ {
+  "value": "Ерлан",
+  "case": "dative",
+  "expected": "Ерланға"
+ },
+ {
+  "value": "Ерлан",
+  "case": "locative",
+  "expected": "Ерланда"
+ },
+ {
+  "value": "Ерлан",
+  "case": "ablative",
+  "expected": "Ерланнан"
+ },
+ {
+  "value": "Ерлан",
+  "case": "genitive",
+  "expected": "Ерланның"
+ },
+ {
+  "value": "Ерлан",
+  "case": "accusative",
+  "expected": "Ерланды"
+ },
+ {
+  "value": "Ерлан",
+  "case": "instrumental",
+  "expected": "Ерланмен"
+ },
+ {
+  "value": "Ерлан",
+  "case": "plural",
+  "expected": "Ерландар"
+ },
+ {
+  "value": "Нұрсұлтан",
+  "case": "dative",
+  "expected": "Нұрсұлтанға"
+ },
+ {
+  "value": "Нұрсұлтан",
+  "case": "locative",
+  "expected": "Нұрсұлтанда"
+ },
+ {
+  "value": "Нұрсұлтан",
+  "case": "ablative",
+  "expected": "Нұрсұлтаннан"
+ },
+ {
+  "value": "Нұрсұлтан",
+  "case": "genitive",
+  "expected": "Нұрсұлтанның"
+ },
+ {
+  "value": "Нұрсұлтан",
+  "case": "accusative",
+  "expected": "Нұрсұлтанды"
+ },
+ {
+  "value": "Нұрсұлтан",
+  "case": "instrumental",
+  "expected": "Нұрсұлтанмен"
+ },
+ {
+  "value": "Нұрсұлтан",
+  "case": "plural",
+  "expected": "Нұрсұлтандар"
+ },
+ {
+  "value": "Дәулет",
+  "case": "dative",
+  "expected": "Дәулетке"
+ },
+ {
+  "value": "Дәулет",
+  "case": "locative",
+  "expected": "Дәулетте"
+ },
+ {
+  "value": "Дәулет",
+  "case": "ablative",
+  "expected": "Дәулеттен"
+ },
+ {
+  "value": "Дәулет",
+  "case": "genitive",
+  "expected": "Дәулеттің"
+ },
+ {
+  "value": "Дәулет",
+  "case": "accusative",
+  "expected": "Дәулетті"
+ },
+ {
+  "value": "Дәулет",
+  "case": "instrumental",
+  "expected": "Дәулетпен"
+ },
+ {
+  "value": "Дәулет",
+  "case": "plural",
+  "expected": "Дәулеттер"
+ },
+ {
+  "value": "Әсел",
+  "case": "dative",
+  "expected": "Әселге"
+ },
+ {
+  "value": "Әсел",
+  "case": "locative",
+  "expected": "Әселде"
+ },
+ {
+  "value": "Әсел",
+  "case": "ablative",
+  "expected": "Әселден"
+ },
+ {
+  "value": "Әсел",
+  "case": "genitive",
+  "expected": "Әселдің"
+ },
+ {
+  "value": "Әсел",
+  "case": "accusative",
+  "expected": "Әселді"
+ },
+ {
+  "value": "Әсел",
+  "case": "instrumental",
+  "expected": "Әселмен"
+ },
+ {
+  "value": "Әсел",
+  "case": "plural",
+  "expected": "Әселдер"
+ },
+ {
+  "value": "Бекзат",
+  "case": "dative",
+  "expected": "Бекзатқа"
+ },
+ {
+  "value": "Бекзат",
+  "case": "locative",
+  "expected": "Бекзатта"
+ },
+ {
+  "value": "Бекзат",
+  "case": "ablative",
+  "expected": "Бекзаттан"
+ },
+ {
+  "value": "Бекзат",
+  "case": "genitive",
+  "expected": "Бекзаттың"
+ },
+ {
+  "value": "Бекзат",
+  "case": "accusative",
+  "expected": "Бекзатты"
+ },
+ {
+  "value": "Бекзат",
+  "case": "instrumental",
+  "expected": "Бекзатпен"
+ },
+ {
+  "value": "Бекзат",
+  "case": "plural",
+  "expected": "Бекзаттар"
+ },
+ {
+  "value": "Жұлдыз",
+  "case": "dative",
+  "expected": "Жұлдызға"
+ },
+ {
+  "value": "Жұлдыз",
+  "case": "locative",
+  "expected": "Жұлдызда"
+ },
+ {
+  "value": "Жұлдыз",
+  "case": "ablative",
+  "expected": "Жұлдыздан"
+ },
+ {
+  "value": "Жұлдыз",
+  "case": "genitive",
+  "expected": "Жұлдыздың"
+ },
+ {
+  "value": "Жұлдыз",
+  "case": "accusative",
+  "expected": "Жұлдызды"
+ },
+ {
+  "value": "Жұлдыз",
+  "case": "instrumental",
+  "expected": "Жұлдызбен"
+ },
+ {
+  "value": "Жұлдыз",
+  "case": "plural",
+  "expected": "Жұлдыздар"
+ },
+ {
+  "value": "Ақбота",
+  "case": "dative",
+  "expected": "Ақботаға"
+ },
+ {
+  "value": "Ақбота",
+  "case": "locative",
+  "expected": "Ақботада"
+ },
+ {
+  "value": "Ақбота",
+  "case": "ablative",
+  "expected": "Ақботадан"
+ },
+ {
+  "value": "Ақбота",
+  "case": "genitive",
+  "expected": "Ақботаның"
+ },
+ {
+  "value": "Ақбота",
+  "case": "accusative",
+  "expected": "Ақботаны"
+ },
+ {
+  "value": "Ақбота",
+  "case": "instrumental",
+  "expected": "Ақботамен"
+ },
+ {
+  "value": "Ақбота",
+  "case": "plural",
+  "expected": "Ақботалар"
+ },
+ {
+  "value": "Серік",
+  "case": "dative",
+  "expected": "Серікке"
+ },
+ {
+  "value": "Серік",
+  "case": "locative",
+  "expected": "Серікте"
+ },
+ {
+  "value": "Серік",
+  "case": "ablative",
+  "expected": "Серіктен"
+ },
+ {
+  "value": "Серік",
+  "case": "genitive",
+  "expected": "Серіктің"
+ },
+ {
+  "value": "Серік",
+  "case": "accusative",
+  "expected": "Серікті"
+ },
+ {
+  "value": "Серік",
+  "case": "instrumental",
+  "expected": "Серікпен"
+ },
+ {
+  "value": "Серік",
+  "case": "plural",
+  "expected": "Серіктер"
+ },
+ {
+  "value": "Төлеген",
+  "case": "dative",
+  "expected": "Төлегенге"
+ },
+ {
+  "value": "Төлеген",
+  "case": "locative",
+  "expected": "Төлегенде"
+ },
+ {
+  "value": "Төлеген",
+  "case": "ablative",
+  "expected": "Төлегеннен"
+ },
+ {
+  "value": "Төлеген",
+  "case": "genitive",
+  "expected": "Төлегеннің"
+ },
+ {
+  "value": "Төлеген",
+  "case": "accusative",
+  "expected": "Төлегенді"
+ },
+ {
+  "value": "Төлеген",
+  "case": "instrumental",
+  "expected": "Төлегенмен"
+ },
+ {
+  "value": "Төлеген",
+  "case": "plural",
+  "expected": "Төлегендер"
+ },
+ {
+  "value": "Ұлжан",
+  "case": "dative",
+  "expected": "Ұлжанға"
+ },
+ {
+  "value": "Ұлжан",
+  "case": "locative",
+  "expected": "Ұлжанда"
+ },
+ {
+  "value": "Ұлжан",
+  "case": "ablative",
+  "expected": "Ұлжаннан"
+ },
+ {
+  "value": "Ұлжан",
+  "case": "genitive",
+  "expected": "Ұлжанның"
+ },
+ {
+  "value": "Ұлжан",
+  "case": "accusative",
+  "expected": "Ұлжанды"
+ },
+ {
+  "value": "Ұлжан",
+  "case": "instrumental",
+  "expected": "Ұлжанмен"
+ },
+ {
+  "value": "Ұлжан",
+  "case": "plural",
+  "expected": "Ұлжандар"
+ },
+ {
+  "value": "Қайрат",
+  "case": "dative",
+  "expected": "Қайратқа"
+ },
+ {
+  "value": "Қайрат",
+  "case": "locative",
+  "expected": "Қайратта"
+ },
+ {
+  "value": "Қайрат",
+  "case": "ablative",
+  "expected": "Қайраттан"
+ },
+ {
+  "value": "Қайрат",
+  "case": "genitive",
+  "expected": "Қайраттың"
+ },
+ {
+  "value": "Қайрат",
+  "case": "accusative",
+  "expected": "Қайратты"
+ },
+ {
+  "value": "Қайрат",
+  "case": "instrumental",
+  "expected": "Қайратпен"
+ },
+ {
+  "value": "Қайрат",
+  "case": "plural",
+  "expected": "Қайраттар"
+ },
+ {
+  "value": "ҚАЙРАТ",
+  "case": "dative",
+  "expected": "ҚАЙРАТҚА"
+ },
+ {
+  "value": "ҚАЙРАТ",
+  "case": "locative",
+  "expected": "ҚАЙРАТТА"
+ },
+ {
+  "value": "ҚАЙРАТ",
+  "case": "ablative",
+  "expected": "ҚАЙРАТТАН"
+ },
+ {
+  "value": "ҚАЙРАТ",
+  "case": "genitive",
+  "expected": "ҚАЙРАТТЫҢ"
+ },
+ {
+  "value": "ҚАЙРАТ",
+  "case": "accusative",
+  "expected": "ҚАЙРАТТЫ"
+ },
+ {
+  "value": "ҚАЙРАТ",
+  "case": "instrumental",
+  "expected": "ҚАЙРАТПЕН"
+ },
+ {
+  "value": "ҚАЙРАТ",
+  "case": "plural",
+  "expected": "ҚАЙРАТТАР"
+ },
+ {
+  "value": "Игорь",
+  "case": "dative",
+  "expected": "Игорьға"
+ },
+ {
+  "value": "Игорь",
+  "case": "locative",
+  "expected": "Игорьда"
+ },
+ {
+  "value": "Игорь",
+  "case": "ablative",
+  "expected": "Игорьдан"
+ },
+ {
+  "value": "Игорь",
+  "case": "genitive",
+  "expected": "Игорьдың"
+ },
+ {
+  "value": "Игорь",
+  "case": "accusative",
+  "expected": "Игорьды"
+ },
+ {
+  "value": "Игорь",
+  "case": "instrumental",
+  "expected": "Игорьмен"
+ },
+ {
+  "value": "Игорь",
+  "case": "plural",
+  "expected": "Игорьлар"
+ },
+ {
+  "value": "Сергей",
+  "case": "dative",
+  "expected": "Сергейге"
+ },
+ {
+  "value": "Сергей",
+  "case": "locative",
+  "expected": "Сергейде"
+ },
+ {
+  "value": "Сергей",
+  "case": "ablative",
+  "expected": "Сергейден"
+ },
+ {
+  "value": "Сергей",
+  "case": "genitive",
+  "expected": "Сергейдің"
+ },
+ {
+  "value": "Сергей",
+  "case": "accusative",
+  "expected": "Сергейді"
+ },
+ {
+  "value": "Сергей",
+  "case": "instrumental",
+  "expected": "Сергеймен"
+ },
+ {
+  "value": "Сергей",
+  "case": "plural",
+  "expected": "Сергейлер"
+ },
+ {
+  "value": "Виктор",
+  "case": "dative",
+  "expected": "Викторға"
+ },
+ {
+  "value": "Виктор",
+  "case": "locative",
+  "expected": "Викторда"
+ },
+ {
+  "value": "Виктор",
+  "case": "ablative",
+  "expected": "Виктордан"
+ },
+ {
+  "value": "Виктор",
+  "case": "genitive",
+  "expected": "Виктордың"
+ },
+ {
+  "value": "Виктор",
+  "case": "accusative",
+  "expected": "Викторды"
+ },
+ {
+  "value": "Виктор",
+  "case": "instrumental",
+  "expected": "Виктормен"
+ },
+ {
+  "value": "Виктор",
+  "case": "plural",
+  "expected": "Викторлар"
+ },
+ {
+  "value": "Ольга",
+  "case": "dative",
+  "expected": "Ольгаға"
+ },
+ {
+  "value": "Ольга",
+  "case": "locative",
+  "expected": "Ольгада"
+ },
+ {
+  "value": "Ольга",
+  "case": "ablative",
+  "expected": "Ольгадан"
+ },
+ {
+  "value": "Ольга",
+  "case": "genitive",
+  "expected": "Ольганың"
+ },
+ {
+  "value": "Ольга",
+  "case": "accusative",
+  "expected": "Ольганы"
+ },
+ {
+  "value": "Ольга",
+  "case": "instrumental",
+  "expected": "Ольгамен"
+ },
+ {
+  "value": "Ольга",
+  "case": "plural",
+  "expected": "Ольгалар"
+ },
+ {
+  "value": "0",
+  "case": "dative",
+  "expected": "0-ге"
+ },
+ {
+  "value": "0",
+  "case": "locative",
+  "expected": "0-де"
+ },
+ {
+  "value": "0",
+  "case": "ablative",
+  "expected": "0-ден"
+ },
+ {
+  "value": "0",
+  "case": "genitive",
+  "expected": "0-дің"
+ },
+ {
+  "value": "0",
+  "case": "accusative",
+  "expected": "0-ді"
+ },
+ {
+  "value": "0",
+  "case": "instrumental",
+  "expected": "0-мен"
+ },
+ {
+  "value": "0",
+  "case": "plural",
+  "expected": "0-дер"
+ },
+ {
+  "value": "1",
+  "case": "dative",
+  "expected": "1-ге"
+ },
+ {
+  "value": "1",
+  "case": "locative",
+  "expected": "1-де"
+ },
+ {
+  "value": "1",
+  "case": "ablative",
+  "expected": "1-ден"
+ },
+ {
+  "value": "1",
+  "case": "genitive",
+  "expected": "1-дің"
+ },
+ {
+  "value": "1",
+  "case": "accusative",
+  "expected": "1-ді"
+ },
+ {
+  "value": "1",
+  "case": "instrumental",
+  "expected": "1-мен"
+ },
+ {
+  "value": "1",
+  "case": "plural",
+  "expected": "1-лер"
+ },
+ {
+  "value": "2",
+  "case": "dative",
+  "expected": "2-ге"
+ },
+ {
+  "value": "2",
+  "case": "locative",
+  "expected": "2-де"
+ },
+ {
+  "value": "2",
+  "case": "ablative",
+  "expected": "2-ден"
+ },
+ {
+  "value": "2",
+  "case": "genitive",
+  "expected": "2-нің"
+ },
+ {
+  "value": "2",
+  "case": "accusative",
+  "expected": "2-ні"
+ },
+ {
+  "value": "2",
+  "case": "instrumental",
+  "expected": "2-мен"
+ },
+ {
+  "value": "2",
+  "case": "plural",
+  "expected": "2-лер"
+ },
+ {
+  "value": "3",
+  "case": "dative",
+  "expected": "3-ке"
+ },
+ {
+  "value": "3",
+  "case": "locative",
+  "expected": "3-те"
+ },
+ {
+  "value": "3",
+  "case": "ablative",
+  "expected": "3-тен"
+ },
+ {
+  "value": "3",
+  "case": "genitive",
+  "expected": "3-тің"
+ },
+ {
+  "value": "3",
+  "case": "accusative",
+  "expected": "3-ті"
+ },
+ {
+  "value": "3",
+  "case": "instrumental",
+  "expected": "3-пен"
+ },
+ {
+  "value": "3",
+  "case": "plural",
+  "expected": "3-тер"
+ },
+ {
+  "value": "5",
+  "case": "dative",
+  "expected": "5-ке"
+ },
+ {
+  "value": "5",
+  "case": "locative",
+  "expected": "5-те"
+ },
+ {
+  "value": "5",
+  "case": "ablative",
+  "expected": "5-тен"
+ },
+ {
+  "value": "5",
+  "case": "genitive",
+  "expected": "5-тің"
+ },
+ {
+  "value": "5",
+  "case": "accusative",
+  "expected": "5-ті"
+ },
+ {
+  "value": "5",
+  "case": "instrumental",
+  "expected": "5-пен"
+ },
+ {
+  "value": "5",
+  "case": "plural",
+  "expected": "5-тер"
+ },
+ {
+  "value": "6",
+  "case": "dative",
+  "expected": "6-ға"
+ },
+ {
+  "value": "6",
+  "case": "locative",
+  "expected": "6-да"
+ },
+ {
+  "value": "6",
+  "case": "ablative",
+  "expected": "6-дан"
+ },
+ {
+  "value": "6",
+  "case": "genitive",
+  "expected": "6-ның"
+ },
+ {
+  "value": "6",
+  "case": "accusative",
+  "expected": "6-ны"
+ },
+ {
+  "value": "6",
+  "case": "instrumental",
+  "expected": "6-мен"
+ },
+ {
+  "value": "6",
+  "case": "plural",
+  "expected": "6-лар"
+ },
+ {
+  "value": "7",
+  "case": "dative",
+  "expected": "7-ге"
+ },
+ {
+  "value": "7",
+  "case": "locative",
+  "expected": "7-де"
+ },
+ {
+  "value": "7",
+  "case": "ablative",
+  "expected": "7-ден"
+ },
+ {
+  "value": "7",
+  "case": "genitive",
+  "expected": "7-нің"
+ },
+ {
+  "value": "7",
+  "case": "accusative",
+  "expected": "7-ні"
+ },
+ {
+  "value": "7",
+  "case": "instrumental",
+  "expected": "7-мен"
+ },
+ {
+  "value": "7",
+  "case": "plural",
+  "expected": "7-лер"
+ },
+ {
+  "value": "9",
+  "case": "dative",
+  "expected": "9-ға"
+ },
+ {
+  "value": "9",
+  "case": "locative",
+  "expected": "9-да"
+ },
+ {
+  "value": "9",
+  "case": "ablative",
+  "expected": "9-дан"
+ },
+ {
+  "value": "9",
+  "case": "genitive",
+  "expected": "9-дың"
+ },
+ {
+  "value": "9",
+  "case": "accusative",
+  "expected": "9-ды"
+ },
+ {
+  "value": "9",
+  "case": "instrumental",
+  "expected": "9-бен"
+ },
+ {
+  "value": "9",
+  "case": "plural",
+  "expected": "9-дар"
+ },
+ {
+  "value": "10",
+  "case": "dative",
+  "expected": "10-ға"
+ },
+ {
+  "value": "10",
+  "case": "locative",
+  "expected": "10-да"
+ },
+ {
+  "value": "10",
+  "case": "ablative",
+  "expected": "10-нан"
+ },
+ {
+  "value": "10",
+  "case": "genitive",
+  "expected": "10-ның"
+ },
+ {
+  "value": "10",
+  "case": "accusative",
+  "expected": "10-ды"
+ },
+ {
+  "value": "10",
+  "case": "instrumental",
+  "expected": "10-мен"
+ },
+ {
+  "value": "10",
+  "case": "plural",
+  "expected": "10-дар"
+ },
+ {
+  "value": "20",
+  "case": "dative",
+  "expected": "20-ға"
+ },
+ {
+  "value": "20",
+  "case": "locative",
+  "expected": "20-да"
+ },
+ {
+  "value": "20",
+  "case": "ablative",
+  "expected": "20-дан"
+ },
+ {
+  "value": "20",
+  "case": "genitive",
+  "expected": "20-ның"
+ },
+ {
+  "value": "20",
+  "case": "accusative",
+  "expected": "20-ны"
+ },
+ {
+  "value": "20",
+  "case": "instrumental",
+  "expected": "20-мен"
+ },
+ {
+  "value": "20",
+  "case": "plural",
+  "expected": "20-лар"
+ },
+ {
+  "value": "40",
+  "case": "dative",
+  "expected": "40-қа"
+ },
+ {
+  "value": "40",
+  "case": "locative",
+  "expected": "40-та"
+ },
+ {
+  "value": "40",
+  "case": "ablative",
+  "expected": "40-тан"
+ },
+ {
+  "value": "40",
+  "case": "genitive",
+  "expected": "40-тың"
+ },
+ {
+  "value": "40",
+  "case": "accusative",
+  "expected": "40-ты"
+ },
+ {
+  "value": "40",
+  "case": "instrumental",
+  "expected": "40-пен"
+ },
+ {
+  "value": "40",
+  "case": "plural",
+  "expected": "40-тар"
+ },
+ {
+  "value": "50",
+  "case": "dative",
+  "expected": "50-ға"
+ },
+ {
+  "value": "50",
+  "case": "locative",
+  "expected": "50-да"
+ },
+ {
+  "value": "50",
+  "case": "ablative",
+  "expected": "50-дан"
+ },
+ {
+  "value": "50",
+  "case": "genitive",
+  "expected": "50-ның"
+ },
+ {
+  "value": "50",
+  "case": "accusative",
+  "expected": "50-ны"
+ },
+ {
+  "value": "50",
+  "case": "instrumental",
+  "expected": "50-мен"
+ },
+ {
+  "value": "50",
+  "case": "plural",
+  "expected": "50-лар"
+ },
+ {
+  "value": "100",
+  "case": "dative",
+  "expected": "100-ге"
+ },
+ {
+  "value": "100",
+  "case": "locative",
+  "expected": "100-де"
+ },
+ {
+  "value": "100",
+  "case": "ablative",
+  "expected": "100-ден"
+ },
+ {
+  "value": "100",
+  "case": "genitive",
+  "expected": "100-дің"
+ },
+ {
+  "value": "100",
+  "case": "accusative",
+  "expected": "100-ді"
+ },
+ {
+  "value": "100",
+  "case": "instrumental",
+  "expected": "100-бен"
+ },
+ {
+  "value": "100",
+  "case": "plural",
+  "expected": "100-дер"
+ },
+ {
+  "value": "250",
+  "case": "dative",
+  "expected": "250-ға"
+ },
+ {
+  "value": "250",
+  "case": "locative",
+  "expected": "250-да"
+ },
+ {
+  "value": "250",
+  "case": "ablative",
+  "expected": "250-дан"
+ },
+ {
+  "value": "250",
+  "case": "genitive",
+  "expected": "250-ның"
+ },
+ {
+  "value": "250",
+  "case": "accusative",
+  "expected": "250-ны"
+ },
+ {
+  "value": "250",
+  "case": "instrumental",
+  "expected": "250-мен"
+ },
+ {
+  "value": "250",
+  "case": "plural",
+  "expected": "250-лар"
+ },
+ {
+  "value": "1000",
+  "case": "dative",
+  "expected": "1000-ға"
+ },
+ {
+  "value": "1000",
+  "case": "locative",
+  "expected": "1000-да"
+ },
+ {
+  "value": "1000",
+  "case": "ablative",
+  "expected": "1000-нан"
+ },
+ {
+  "value": "1000",
+  "case": "genitive",
+  "expected": "1000-ның"
+ },
+ {
+  "value": "1000",
+  "case": "accusative",
+  "expected": "1000-ды"
+ },
+ {
+  "value": "1000",
+  "case": "instrumental",
+  "expected": "1000-мен"
+ },
+ {
+  "value": "1000",
+  "case": "plural",
+  "expected": "1000-дар"
+ },
+ {
+  "value": "2000",
+  "case": "dative",
+  "expected": "2000-ға"
+ },
+ {
+  "value": "2000",
+  "case": "locative",
+  "expected": "2000-да"
+ },
+ {
+  "value": "2000",
+  "case": "ablative",
+  "expected": "2000-нан"
+ },
+ {
+  "value": "2000",
+  "case": "genitive",
+  "expected": "2000-ның"
+ },
+ {
+  "value": "2000",
+  "case": "accusative",
+  "expected": "2000-ды"
+ },
+ {
+  "value": "2000",
+  "case": "instrumental",
+  "expected": "2000-мен"
+ },
+ {
+  "value": "2000",
+  "case": "plural",
+  "expected": "2000-дар"
+ },
+ {
+  "value": "1500",
+  "case": "dative",
+  "expected": "1500-ге"
+ },
+ {
+  "value": "1500",
+  "case": "locative",
+  "expected": "1500-де"
+ },
+ {
+  "value": "1500",
+  "case": "ablative",
+  "expected": "1500-ден"
+ },
+ {
+  "value": "1500",
+  "case": "genitive",
+  "expected": "1500-дің"
+ },
+ {
+  "value": "1500",
+  "case": "accusative",
+  "expected": "1500-ді"
+ },
+ {
+  "value": "1500",
+  "case": "instrumental",
+  "expected": "1500-бен"
+ },
+ {
+  "value": "1500",
+  "case": "plural",
+  "expected": "1500-дер"
+ },
+ {
+  "value": "1000000",
+  "case": "dative",
+  "expected": "1000000-ға"
+ },
+ {
+  "value": "1000000",
+  "case": "locative",
+  "expected": "1000000-да"
+ },
+ {
+  "value": "1000000",
+  "case": "ablative",
+  "expected": "1000000-нан"
+ },
+ {
+  "value": "1000000",
+  "case": "genitive",
+  "expected": "1000000-ның"
+ },
+ {
+  "value": "1000000",
+  "case": "accusative",
+  "expected": "1000000-ды"
+ },
+ {
+  "value": "1000000",
+  "case": "instrumental",
+  "expected": "1000000-мен"
+ },
+ {
+  "value": "1000000",
+  "case": "plural",
+  "expected": "1000000-дар"
+ },
+ {
+  "value": "1.5",
+  "case": "dative",
+  "expected": "1.5-ке"
+ },
+ {
+  "value": "1.5",
+  "case": "locative",
+  "expected": "1.5-те"
+ },
+ {
+  "value": "1.5",
+  "case": "ablative",
+  "expected": "1.5-тен"
+ },
+ {
+  "value": "1.5",
+  "case": "genitive",
+  "expected": "1.5-тің"
+ },
+ {
+  "value": "1.5",
+  "case": "accusative",
+  "expected": "1.5-ті"
+ },
+ {
+  "value": "1.5",
+  "case": "instrumental",
+  "expected": "1.5-пен"
+ },
+ {
+  "value": "1.5",
+  "case": "plural",
+  "expected": "1.5-тер"
+ },
+ {
+  "value": "99,9",
+  "case": "dative",
+  "expected": "99,9-ға"
+ },
+ {
+  "value": "99,9",
+  "case": "locative",
+  "expected": "99,9-да"
+ },
+ {
+  "value": "99,9",
+  "case": "ablative",
+  "expected": "99,9-дан"
+ },
+ {
+  "value": "99,9",
+  "case": "genitive",
+  "expected": "99,9-дың"
+ },
+ {
+  "value": "99,9",
+  "case": "accusative",
+  "expected": "99,9-ды"
+ },
+ {
+  "value": "99,9",
+  "case": "instrumental",
+  "expected": "99,9-бен"
+ },
+ {
+  "value": "99,9",
+  "case": "plural",
+  "expected": "99,9-дар"
+ },
+ {
+  "value": "Google",
+  "case": "dative",
+  "expected": "Google-ға"
+ },
+ {
+  "value": "Google",
+  "case": "locative",
+  "expected": "Google-да"
+ },
+ {
+  "value": "Google",
+  "case": "ablative",
+  "expected": "Google-дан"
+ },
+ {
+  "value": "Google",
+  "case": "genitive",
+  "expected": "Google-дың"
+ },
+ {
+  "value": "Google",
+  "case": "accusative",
+  "expected": "Google-ды"
+ },
+ {
+  "value": "Google",
+  "case": "instrumental",
+  "expected": "Google-мен"
+ },
+ {
+  "value": "Google",
+  "case": "plural",
+  "expected": "Google-дар"
+ },
+ {
+  "value": "Apple",
+  "case": "dative",
+  "expected": "Apple-ға"
+ },
+ {
+  "value": "Apple",
+  "case": "locative",
+  "expected": "Apple-да"
+ },
+ {
+  "value": "Apple",
+  "case": "ablative",
+  "expected": "Apple-дан"
+ },
+ {
+  "value": "Apple",
+  "case": "genitive",
+  "expected": "Apple-дың"
+ },
+ {
+  "value": "Apple",
+  "case": "accusative",
+  "expected": "Apple-ды"
+ },
+ {
+  "value": "Apple",
+  "case": "instrumental",
+  "expected": "Apple-мен"
+ },
+ {
+  "value": "Apple",
+  "case": "plural",
+  "expected": "Apple-дар"
+ },
+ {
+  "value": "Kaspi",
+  "case": "dative",
+  "expected": "Kaspi-ге"
+ },
+ {
+  "value": "Kaspi",
+  "case": "locative",
+  "expected": "Kaspi-де"
+ },
+ {
+  "value": "Kaspi",
+  "case": "ablative",
+  "expected": "Kaspi-ден"
+ },
+ {
+  "value": "Kaspi",
+  "case": "genitive",
+  "expected": "Kaspi-нің"
+ },
+ {
+  "value": "Kaspi",
+  "case": "accusative",
+  "expected": "Kaspi-ні"
+ },
+ {
+  "value": "Kaspi",
+  "case": "instrumental",
+  "expected": "Kaspi-мен"
+ },
+ {
+  "value": "Kaspi",
+  "case": "plural",
+  "expected": "Kaspi-лер"
+ },
+ {
+  "value": "Discord",
+  "case": "dative",
+  "expected": "Discord-қа"
+ },
+ {
+  "value": "Discord",
+  "case": "locative",
+  "expected": "Discord-та"
+ },
+ {
+  "value": "Discord",
+  "case": "ablative",
+  "expected": "Discord-тан"
+ },
+ {
+  "value": "Discord",
+  "case": "genitive",
+  "expected": "Discord-тың"
+ },
+ {
+  "value": "Discord",
+  "case": "accusative",
+  "expected": "Discord-ты"
+ },
+ {
+  "value": "Discord",
+  "case": "instrumental",
+  "expected": "Discord-пен"
+ },
+ {
+  "value": "Discord",
+  "case": "plural",
+  "expected": "Discord-тар"
+ },
+ {
+  "value": "Telegram",
+  "case": "dative",
+  "expected": "Telegram-ға"
+ },
+ {
+  "value": "Telegram",
+  "case": "locative",
+  "expected": "Telegram-да"
+ },
+ {
+  "value": "Telegram",
+  "case": "ablative",
+  "expected": "Telegram-нан"
+ },
+ {
+  "value": "Telegram",
+  "case": "genitive",
+  "expected": "Telegram-ның"
+ },
+ {
+  "value": "Telegram",
+  "case": "accusative",
+  "expected": "Telegram-ды"
+ },
+ {
+  "value": "Telegram",
+  "case": "instrumental",
+  "expected": "Telegram-мен"
+ },
+ {
+  "value": "Telegram",
+  "case": "plural",
+  "expected": "Telegram-дар"
+ },
+ {
+  "value": "Timur",
+  "case": "dative",
+  "expected": "Timur-ға"
+ },
+ {
+  "value": "Timur",
+  "case": "locative",
+  "expected": "Timur-да"
+ },
+ {
+  "value": "Timur",
+  "case": "ablative",
+  "expected": "Timur-дан"
+ },
+ {
+  "value": "Timur",
+  "case": "genitive",
+  "expected": "Timur-дың"
+ },
+ {
+  "value": "Timur",
+  "case": "accusative",
+  "expected": "Timur-ды"
+ },
+ {
+  "value": "Timur",
+  "case": "instrumental",
+  "expected": "Timur-мен"
+ },
+ {
+  "value": "Timur",
+  "case": "plural",
+  "expected": "Timur-лар"
+ },
+ {
+  "value": "Andy",
+  "case": "dative",
+  "expected": "Andy-ге"
+ },
+ {
+  "value": "Andy",
+  "case": "locative",
+  "expected": "Andy-де"
+ },
+ {
+  "value": "Andy",
+  "case": "ablative",
+  "expected": "Andy-ден"
+ },
+ {
+  "value": "Andy",
+  "case": "genitive",
+  "expected": "Andy-нің"
+ },
+ {
+  "value": "Andy",
+  "case": "accusative",
+  "expected": "Andy-ні"
+ },
+ {
+  "value": "Andy",
+  "case": "instrumental",
+  "expected": "Andy-мен"
+ },
+ {
+  "value": "Andy",
+  "case": "plural",
+  "expected": "Andy-лер"
+ },
+ {
+  "value": "Player123",
+  "case": "dative",
+  "expected": "Player123-ке"
+ },
+ {
+  "value": "Player123",
+  "case": "locative",
+  "expected": "Player123-те"
+ },
+ {
+  "value": "Player123",
+  "case": "ablative",
+  "expected": "Player123-тен"
+ },
+ {
+  "value": "Player123",
+  "case": "genitive",
+  "expected": "Player123-тің"
+ },
+ {
+  "value": "Player123",
+  "case": "accusative",
+  "expected": "Player123-ті"
+ },
+ {
+  "value": "Player123",
+  "case": "instrumental",
+  "expected": "Player123-пен"
+ },
+ {
+  "value": "Player123",
+  "case": "plural",
+  "expected": "Player123-тер"
+ },
+ {
+  "value": "VK Pay",
+  "case": "dative",
+  "expected": "VK Pay-ге"
+ },
+ {
+  "value": "VK Pay",
+  "case": "locative",
+  "expected": "VK Pay-де"
+ },
+ {
+  "value": "VK Pay",
+  "case": "ablative",
+  "expected": "VK Pay-ден"
+ },
+ {
+  "value": "VK Pay",
+  "case": "genitive",
+  "expected": "VK Pay-нің"
+ },
+ {
+  "value": "VK Pay",
+  "case": "accusative",
+  "expected": "VK Pay-ні"
+ },
+ {
+  "value": "VK Pay",
+  "case": "instrumental",
+  "expected": "VK Pay-мен"
+ },
+ {
+  "value": "VK Pay",
+  "case": "plural",
+  "expected": "VK Pay-лер"
+ }
+]
