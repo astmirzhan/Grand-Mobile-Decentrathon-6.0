@@ -3,17 +3,23 @@ from __future__ import annotations
 import argparse
 import csv
 import importlib
+import json
+import os
 import pkgutil
 import sys
 from pathlib import Path
 from typing import Any
 
 import locqa.checks
+from locqa import llm as llm_mod
 from locqa.arb import load_arb
+from locqa.checks import llm_checks
 from locqa.fix import apply_decisions
 from locqa.models import CheckFunc, Context, Finding
 from locqa.report import write_html_report, write_json_report
 from locqa.resolve import resolve_findings
+from locqa.sheet import export as export_review
+from locqa.suggest import suggest
 
 
 def load_glossary_entries(path: str | Path | None) -> list[dict[str, Any]]:
@@ -44,7 +50,8 @@ def load_glossary_entries(path: str | Path | None) -> list[dict[str, Any]]:
         return rows
 
 
-def discover_checks(no_llm: bool = False) -> list[tuple[str, CheckFunc]]:
+def discover_checks() -> list[tuple[str, CheckFunc]]:
+    """Все проверки без LLM; llm_checks вызывается отдельно, ей нужен клиент и skip_keys."""
     discovered: list[tuple[str, CheckFunc]] = []
     package_path = locqa.checks.__path__
     prefix = locqa.checks.__name__ + "."
@@ -52,7 +59,7 @@ def discover_checks(no_llm: bool = False) -> list[tuple[str, CheckFunc]]:
     for _, mod_name, is_pkg in pkgutil.iter_modules(package_path, prefix):
         if is_pkg:
             continue
-        if no_llm and mod_name.endswith(".llm_checks"):
+        if mod_name.endswith(".llm_checks"):
             continue
         module = importlib.import_module(mod_name)
         check_fn = getattr(module, "check", None)
@@ -82,7 +89,7 @@ def cmd_check(args: argparse.Namespace) -> int:
     )
 
     all_findings: list[Finding] = []
-    for mod_name, check_fn in discover_checks(no_llm=args.no_llm):
+    for mod_name, check_fn in discover_checks():
         try:
             res = check_fn(ctx)
             if res:
@@ -91,7 +98,21 @@ def cmd_check(args: argparse.Namespace) -> int:
         except Exception as exc:
             print(f"[ERROR] Ошибка в модуле проверки {mod_name}: {exc}", file=sys.stderr)
 
+    # --no-llm отключает только запросы: кодовые доказательства (повторяющиеся хвосты) работают всегда
+    llm = llm_mod.configure(
+        enabled=False if args.no_llm else None,
+        offline=args.offline or None,
+        workers=int(os.environ.get("LOCQA_WORKERS", 4)),
+        batch_size=int(os.environ.get("LOCQA_BATCH", 25)),
+    )
+    llm_found, meaning = llm_checks.check_with_meaning(ctx, llm, skip_keys={f.key for f in all_findings})
+    print(f"[OK] locqa.checks.llm_checks: найдено {len(llm_found)}, ошибки смысла для носителей: {len(meaning)}")
+    all_findings.extend(llm_found)
+
     resolved = resolve_findings(all_findings, key_order=ru_doc.order)
+    taken = {f.key for f in resolved}
+    meaning = [f for f in resolve_findings(meaning, key_order=ru_doc.order) if f.key not in taken]
+    suggest_stats = suggest(ctx, resolved + meaning, llm)
 
     out_arg = Path(args.out)
     if out_arg.suffix.lower() == ".json":
@@ -108,6 +129,17 @@ def cmd_check(args: argparse.Namespace) -> int:
     json_path.parent.mkdir(parents=True, exist_ok=True)
     write_json_report(resolved, json_path)
     write_html_report(resolved, html_path)
+
+    # стоимость LLM — требование ТЗ; report.json остаётся списком находок по схеме кейса
+    summary_path = json_path.with_suffix(".llm.json")
+    summary_path.write_text(
+        json.dumps({"llm": llm.summary(), "suggest": suggest_stats, "meaning_for_review": len(meaning)},
+                   ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    if args.review_dir:
+        for path in export_review(ctx, resolved + meaning, args.review_dir):
+            print(f"Таблица ревью: {path}")
 
     print(f"Итого после дедупликации (resolve): {len(resolved)} проблем. Отчёты: {json_path}, {html_path}")
     return 0
@@ -137,7 +169,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_check.add_argument("--en", default=None, help="Путь к английскому ARB (intl_en.arb)")
     p_check.add_argument("--glossary", default=None, help="Путь к glossary.csv")
     p_check.add_argument("--out", default="report.json", help="Путь к выходному файлу/папке отчёта")
-    p_check.add_argument("--no-llm", action="store_true", help="Отключить LLM-проверки")
+    p_check.add_argument("--no-llm", action="store_true", help="Без запросов к LLM, только кодовые проверки")
+    p_check.add_argument("--offline", action="store_true", help="Только готовые ответы из кэша, без запросов к API")
+    p_check.add_argument("--review-dir", default=None, help="Папка для таблиц ревью A/B/C")
     p_check.set_defaults(func=cmd_check)
 
     p_fix = subparsers.add_parser("fix", help="Применить ревью-решения из CSV к ARB")

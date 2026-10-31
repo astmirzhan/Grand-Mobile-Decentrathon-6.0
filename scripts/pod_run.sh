@@ -15,6 +15,7 @@ export LOCQA_MODEL="ollama/$MODEL" LOCQA_WORKERS=4 LOCQA_BATCH=5 OPENAI_API_KEY=
 if [ "${1:-eval}" = "eval" ]; then
   python3 scripts/eval_local.py "ollama/$MODEL" 60 5
 else
-  LOCQA_FALLBACK_CACHE=gpt-5.4:low python3 scripts/run_llm_part.py
+  LOCQA_FALLBACK_CACHE=gpt-5.4:low python3 -m locqa.cli check --source data/intl_ru.arb --target data/intl_kk.arb \
+    --en data/intl_en.arb --uz data/intl_uz.arb --glossary glossary.csv --out out/report.json --review-dir out/review
 fi
 echo "DONE"

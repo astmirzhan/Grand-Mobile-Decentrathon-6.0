@@ -165,7 +165,7 @@ def suggest(ctx: Context, findings: list[Finding], llm: LLM | None = None) -> di
     for f in findings:
         ru = ctx.ru.get(f.key, f.source)
         kk = ctx.kk.get(f.key, f.target)
-        if f.suggestion is not None:
+        if f.suggestion:  # пустая строка у проверок означает «варианта нет»
             reason = validate(ru, kk, f.suggestion, f.issue_type, f.key)
             if reason is None:
                 continue
@@ -190,7 +190,8 @@ def suggest(ctx: Context, findings: list[Finding], llm: LLM | None = None) -> di
             row["ui_element"] = is_ui_key(f.key, row["ru"])
             items.append(row)
             by_id[str(i)] = f
-        for res in llm.ask(items, prompt, ITEM_SCHEMA, batch_size=15):
+        # формулировка причины не меняет ответ: правка текста evidence не должна сбрасывать оплаченный кэш
+        for res in llm.ask(items, prompt, ITEM_SCHEMA, batch_size=15, cache_ignore=("problem",)):
             f = by_id[str(res["id"])]
             cand = (res.get("suggestion") or "").strip()
             if not cand:
@@ -204,6 +205,6 @@ def suggest(ctx: Context, findings: list[Finding], llm: LLM | None = None) -> di
                 f.suggestion = cand
                 stats["llm_accepted"] += 1
 
-    stats["no_suggestion"] = sum(f.suggestion is None for f in findings)
+    stats["no_suggestion"] = sum(not f.suggestion for f in findings)
     stats["rejected"] = dict(stats["rejected"])
     return stats
