@@ -47,3 +47,10 @@ def test_mixed_script():
     assert kk.is_mixed_script("бөлімiне")  # Latin i
     assert not kk.is_mixed_script("бөліміне")
     assert not kk.is_mixed_script("Grand")
+
+
+def test_instrumental_after_nasal_is_men():
+    assert kk.harmonize("адам", "instrumental") == "мен"
+    assert kk.harmonize("он", "instrumental") == "мен"
+    assert kk.harmonize("қыз", "instrumental") == "бен"
+    assert kk.harmonize("кітап", "instrumental") == "пен"

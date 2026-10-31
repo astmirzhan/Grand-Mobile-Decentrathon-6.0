@@ -123,7 +123,7 @@ _AFFIXES = {
                  "voiced": ("да", "де"), "voiceless": ("та", "те")},
     "ablative": {"vowel": ("дан", "ден"), "sonorant": ("дан", "ден"), "nasal": ("нан", "нен"),
                  "voiced": ("дан", "ден"), "voiceless": ("тан", "тен")},
-    "instrumental": {"vowel": ("мен", "мен"), "sonorant": ("мен", "мен"), "nasal": ("бен", "бен"),
+    "instrumental": {"vowel": ("мен", "мен"), "sonorant": ("мен", "мен"), "nasal": ("мен", "мен"),
                      "voiced": ("бен", "бен"), "voiceless": ("пен", "пен"), "l": ("мен", "мен")},
     "possessive3": {"vowel": ("сы", "сі"), "sonorant": ("ы", "і"), "nasal": ("ы", "і"),
                     "voiced": ("ы", "і"), "voiceless": ("ы", "і")},
