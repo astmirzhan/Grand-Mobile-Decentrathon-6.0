@@ -1,4 +1,4 @@
-"""Kazakh Cyrillic -> Latin transliteration (official alphabet, 2021 revision).
+"""Kazakh Cyrillic -> Latin transliteration (experimental 2021-style mapping).
 
 Placeholders {name}, tags <g>...</g> and escapes stay untouched.
 """

@@ -135,7 +135,7 @@ class LLM:
         self.aborted: str | None = None
         # офлайн: только готовые ответы из кэша, в API не ходим (LOCQA_OFFLINE=1)
         self.offline = os.environ.get("LOCQA_OFFLINE") == "1" if offline is None else offline
-        if self.offline:
+        if self.offline and enabled is not False:
             self.enabled = True
             self.aborted = "офлайн-режим: только ответы из кэша"
         self._quota_errors = 0  # подряд; OpenAI выдаёт insufficient_quota и прерывисто, при почти нулевом балансе

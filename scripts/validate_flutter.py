@@ -1,7 +1,7 @@
 """Reproducible Flutter verification; original ARB files are never rewritten.
 
 python scripts/validate_flutter.py --source data/intl_ru.arb --target out/final/intl_kk_fixed.arb \
-    --original data/intl_kk.arb --out-dir out/final/flutter
+    --original data/intl_kk.arb --out-dir out/flutter-check
 
 Runs the unmodified input first, then (only if necessary) a copy with deterministic,
 collision-checked Dart identifier renames. Saves both logs and the explicit mapping.

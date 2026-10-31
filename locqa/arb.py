@@ -38,6 +38,8 @@ def load_arb(path: str | Path) -> ParsedArb:
     p = Path(path)
     with p.open("r", encoding="utf-8-sig") as f:
         pairs: list[tuple[str, Any]] = json.load(f, object_pairs_hook=_ObjectPairs)
+    if not isinstance(pairs, _ObjectPairs):
+        raise ValueError('ARB must be a JSON object')
 
     result = ParsedArb(raw_pairs=pairs)
     current_section = ""
@@ -56,11 +58,11 @@ def load_arb(path: str | Path) -> ParsedArb:
                 if isinstance(desc, str):
                     result.descriptions[target_key] = desc
         else:
-            if isinstance(v, str):
-                result.values[k] = v
-            else:
-                result.values[k] = "" if v is None else str(v)
-            result.order.append(k)
+            if not isinstance(v, str):
+                raise ValueError(f'ARB resource {k!r} must be a string')
+            if k not in result.values:
+                result.order.append(k)
+            result.values[k] = v
             if current_section:
                 result.sections[k] = current_section
 

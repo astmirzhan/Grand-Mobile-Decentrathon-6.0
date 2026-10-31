@@ -23,6 +23,8 @@ from locqa.suggest import suggest
 
 
 def load_glossary_entries(path: str | Path | None) -> list[dict[str, Any]]:
+    if path and not Path(path).is_file():
+        raise FileNotFoundError(f'Glossary not found: {path}')
     candidates = [Path(path)] if path else []
     candidates.extend([Path("glossary.csv"), Path("data/glossary.csv")])
     target_path = next((p for p in candidates if p.exists()), None)
@@ -70,6 +72,10 @@ def discover_checks() -> list[tuple[str, CheckFunc]]:
 
 
 def cmd_check(args: argparse.Namespace) -> int:
+    for label in ('en', 'uz'):
+        path = getattr(args, label)
+        if path and not Path(path).is_file():
+            raise FileNotFoundError(f'{label} reference not found: {path}')
     ru_doc = load_arb(args.source)
     kk_doc = load_arb(args.target)
     # команда из ТЗ не передаёт --en и --uz: берём соседние файлы, они усиливают проверки

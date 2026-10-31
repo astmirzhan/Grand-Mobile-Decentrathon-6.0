@@ -2,7 +2,7 @@
 
     python scripts/translit_kk.py intl_kk.arb --out intl_kk_latn.arb [--report growth.csv]
 
-The file is rewritten line by line, so @@comment markers, key order and formatting survive.
+The shared ARB writer preserves metadata and repeated @@comment markers, including compact JSON.
 A string is reported when it grows by more than GROWTH_RATIO and at least GROWTH_MIN_CHARS
 (digraphs like ш -> ş are 1:1, but ц -> ts, ч -> ch, ю -> iu, я -> ia add characters).
 """
@@ -15,6 +15,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from locqa.arb import load_arb, update_arb_file
 from locqa.lang.translit import to_latin  # noqa: E402
 
 GROWTH_RATIO = 1.1
@@ -48,11 +49,19 @@ def main(argv=None):
     ap.add_argument("--out", required=True)
     ap.add_argument("--report")
     args = ap.parse_args(argv)
-    lines = Path(args.arb).read_text(encoding="utf-8").splitlines(keepends=True)
-    out, grown = transliterate_lines(lines)
-    Path(args.out).write_text("".join(out), encoding="utf-8")
+    doc = load_arb(args.arb)
+    updates, grown = {}, []
+    for key, value in doc.values.items():
+        latin = to_latin(value)
+        if latin != value:
+            updates[key] = latin
+        if len(latin) - len(value) >= GROWTH_MIN_CHARS and len(latin) > len(value) * GROWTH_RATIO:
+            grown.append({"key": key, "cyrillic": value, "latin": latin,
+                          "len_cyrillic": len(value), "len_latin": len(latin)})
+    update_arb_file(args.arb, args.out, updates, doc.order)
     print(f"{len(grown)} strings grew by >{GROWTH_RATIO - 1:.0%} and ≥{GROWTH_MIN_CHARS} chars")
     if args.report:
+        Path(args.report).parent.mkdir(parents=True, exist_ok=True)
         with open(args.report, "w", encoding="utf-8", newline="") as f:
             w = csv.DictWriter(f, fieldnames=["key", "cyrillic", "latin", "len_cyrillic", "len_latin"])
             w.writeheader()

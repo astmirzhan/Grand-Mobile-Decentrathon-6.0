@@ -142,6 +142,9 @@ def test_finalize_retains_native_labels_and_separates_agent_edits(tmp_path):
     assert load_arb(tmp_path/'confirmed/intl_kk_fixed.arb').meta['agent']['x-reviewer'] == 'native_1'
     assert (tmp_path/'confirmed/metrics.json').read_bytes() == (tmp_path/'final/metrics.json').read_bytes()
     assert review.read_bytes() == original
+    overrides.write_text(json.dumps(corrections + corrections))
+    with pytest.raises(ValueError, match='Duplicate override'):
+        run(source, target, [review], tmp_path/'duplicate_override', overrides_path=overrides)
     corrections[0]['text'] = 'Changed {name}'
     overrides.write_text(json.dumps(corrections))
     with pytest.raises(ValueError, match='Invalid human confirmation'):

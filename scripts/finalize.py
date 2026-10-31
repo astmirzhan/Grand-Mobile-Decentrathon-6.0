@@ -93,8 +93,12 @@ def _build(source, target, reviewed, out_dir, reviewer='native_1', overrides_pat
 
     overrides = json.loads(Path(overrides_path).read_text(encoding='utf-8')) if overrides_path else []
     agent_rows = []
+    override_keys = set()
     for row in overrides:
         key = row['key']
+        if key in override_keys:
+            raise ValueError(f'Duplicate override: {key}')
+        override_keys.add(key)
         if key in by_key:
             raise ValueError(f'Agent override would replace a native-approved edit: {key}')
         if key not in ru.values or validate_text(ru.values[key], row['text']):
@@ -182,7 +186,7 @@ def _build(source, target, reviewed, out_dir, reviewer='native_1', overrides_pat
         'cost.json distinguishes offline finalization from historical estimates; total billing is not verified. '
         'See manifest.json, structural_validation.json, metrics.json and pending_native_review.csv.\n\n'
         'This directory includes private case-derived data: provide only to the organizers.\n', encoding='utf-8')
-    for doc in ['methodology.md', 'methodology_llm.md']:
+    for doc in ['methodology.md', 'methodology_llm.md', 'verification.md']:
         doc_path = Path(__file__).resolve().parents[1]/'docs'/doc
         shutil.copyfile(doc_path, out/doc)
     manifest['outputs'] = {str(p.relative_to(out)): hashlib.sha256(p.read_bytes()).hexdigest()

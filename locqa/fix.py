@@ -30,7 +30,7 @@ def apply_decisions(
     и построчно записывает исправленный ARB.
     Возвращает (applied_count, skipped_count).
     """
-    ru_doc = load_arb(source_arb) if source_arb and Path(source_arb).exists() else None
+    ru_doc = load_arb(source_arb) if source_arb else None
     kk_doc = load_arb(target_arb)
 
     updates: dict[str, str] = {}
