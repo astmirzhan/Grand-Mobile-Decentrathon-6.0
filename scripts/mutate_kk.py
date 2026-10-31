@@ -280,8 +280,9 @@ def main(argv=None):
     ap.add_argument("--target", required=True)
     ap.add_argument("--glossary", required=True)
     ap.add_argument("--uz")
-    ap.add_argument("--per-variant", type=int, default=10)
-    ap.add_argument("--seeds", default="7")
+    ap.add_argument("--per-variant", "--per-type", dest="per_variant", type=int, default=10)
+    ap.add_argument("--seeds", "--seed", dest="seeds", default="7",
+                    help="one seed or a comma-separated list: 7,11,23")
     ap.add_argument("--out")
     args = ap.parse_args(argv)
 
