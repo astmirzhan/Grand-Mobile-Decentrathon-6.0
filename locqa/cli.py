@@ -72,8 +72,11 @@ def discover_checks() -> list[tuple[str, CheckFunc]]:
 def cmd_check(args: argparse.Namespace) -> int:
     ru_doc = load_arb(args.source)
     kk_doc = load_arb(args.target)
-    uz_doc = load_arb(args.uz) if args.uz and Path(args.uz).exists() else None
-    en_doc = load_arb(args.en) if args.en and Path(args.en).exists() else None
+    # команда из ТЗ не передаёт --en и --uz: берём соседние файлы, они усиливают проверки
+    uz_path = args.uz or Path(args.source).with_name("intl_uz.arb")
+    en_path = args.en or Path(args.source).with_name("intl_en.arb")
+    uz_doc = load_arb(uz_path) if Path(uz_path).exists() and Path(uz_path) != Path(args.target) else None
+    en_doc = load_arb(en_path) if Path(en_path).exists() and Path(en_path) != Path(args.target) else None
 
     ctx = Context(
         ru=ru_doc.values,
