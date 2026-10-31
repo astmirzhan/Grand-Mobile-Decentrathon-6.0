@@ -68,18 +68,45 @@ There is no validation set, so we measure ourselves.
 
 We take strings the tool considers clean, inject known errors and check that they are found
 **with the right type**. One mutation per string, at most 2 per glossary term (as in a real
-seeded set), only where ru really contains the term.
+seeded set), only where ru really contains the term. The mutations imitate the errors we saw
+in the seeded file:
 
-| Type | Injected per run | Recall (typed), 5 seeds |
+| Variant | Example | Expected type |
 |---|---|---|
-| orthography | 10 | 100% |
-| suffix_harmony | 10 | 100% |
-| glossary_violation | 6 | 100% |
-| inconsistent_term | 10 | 74% (60–90%) |
-| **total** | 36 | **~92%** |
+| russian_letter | қайта → кайта | orthography |
+| latin_homoglyph | бөліміне → бөлімiне (Latin i) | orthography |
+| affix_hyphen / affix_plain | {name} кірді → {name}-ға / {name}ға | suffix_harmony |
+| strict_synonym | отбасы → жанұя | glossary_violation |
+| strict_russian_left | отбасы → семьи | glossary_violation |
+| rival_synonym | ойыншы → ойнаушы | inconsistent_term |
+| russian_left | сыйлықтары → награды | inconsistent_term |
+| broken_placeholder, empty, uzbek_text | {count} → {counts}, "", text from intl_uz | basic types |
 
-`inconsistent_term` misses are synonyms placed in long descriptions where the rest of the
-sentence gives no statistical signal; we accept this to keep precision high (see below).
+Cases that are not term errors are skipped: the Russian form equals the Kazakh term (*баланс*),
+is an allowed variant, or the string is a single word (that is `same_as_source`).
+
+Full pipeline (merged code, 8 mutations per variant, 3 seeds, 86 errors per run):
+
+| Type | Recall (typed), mean | Range |
+|---|---|---|
+| orthography | 98% | 94–100% |
+| suffix_harmony | 100% | 100% |
+| glossary_violation | 100% | 100% |
+| inconsistent_term | 96% | 94–100% |
+| placeholder_mismatch / untranslated / wrong_language | 100% | 100% |
+| **total** | **99%** | 97–100% |
+
+Remaining misses are honest limits: *әр → ар* (*ар* is itself a Kazakh word), a Russian word
+inside a long Kazakh sentence when the term is not near-unanimous, and single-word strings
+that `resolve` correctly reports as `same_as_source`.
+
+### False alarms on a clean third-party file
+
+Flutter's own `material/cupertino/widgets` Kazakh localizations (203 strings, BSD license,
+ICU plurals, not part of the repo) contain no seeded errors. The Kazakh checks ran without
+changes and reported 2 findings, both real errors in Flutter's translation: Latin `c` in
+*«тыc»* and Latin `M` in *«Mинут»*. **0 false alarms.** The statistical checks need a large file
+to work, so on 200 strings only the deterministic part fires, which is the expected behaviour.
 
 ### Precision: manual labelling (`scripts/precision_sample.py`)
 
