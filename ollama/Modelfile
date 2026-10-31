@@ -1,0 +1,5 @@
+# Промпты locqa длиннее стандартного окна Ollama (4096): без этого текст молча обрезается
+FROM gemma3:12b
+PARAMETER num_ctx 16384
+PARAMETER temperature 0
+PARAMETER seed 0

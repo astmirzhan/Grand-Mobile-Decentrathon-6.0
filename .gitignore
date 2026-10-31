@@ -1,0 +1,28 @@
+# данные кейса и производные от них файлы публиковать нельзя
+data/
+out/
+*.arb
+!tests/fixtures/*.arb
+!tests/fixtures/**/*.arb
+*.tgz
+*.zip
+*.pdf
+report.json
+report.html
+report.llm.json
+.locqa_cache/
+l10n_test/
+
+# ключи
+.env
+
+# окружение
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.DS_Store
