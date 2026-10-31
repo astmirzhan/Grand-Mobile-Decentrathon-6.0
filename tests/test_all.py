@@ -124,3 +124,13 @@ def test_fix_preserves_formatting_and_guards_placeholders(tmp_path: Path) -> Non
     assert '"missingKey": "Жаңа"' in fixed_text
     assert '"bye": "Сау болыңыз"' in fixed_text
     assert '"@bye": {"x-reviewed": true' in fixed_text
+
+def test_fix_accepts_decisions_csv_from_sheet_import(tmp_path: Path) -> None:
+    arb = tmp_path / "intl_kk.arb"
+    arb.write_text('{\n  "buy": "кате"\n}\n', encoding="utf-8")
+    decisions = tmp_path / "decisions.csv"
+    decisions.write_text("key,issue_type,final_text,reviewer,finding_id\nbuy,orthography,қате,B,0001\n", encoding="utf-8")
+    out = tmp_path / "fixed.arb"
+    applied, _ = apply_decisions(decisions, arb, out)
+    text = out.read_text(encoding="utf-8")
+    assert applied == 1 and '"buy": "қате"' in text and '"x-reviewed": true' in text

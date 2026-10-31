@@ -47,10 +47,15 @@ def apply_decisions(
             issue_type = _pick_col(row, ("issue_type", "тип", "issue")) or "manual_review"
             reviewer = _pick_col(row, ("reviewer", "ревьюер")) or default_reviewer
 
-            if not key or not decision:
+            if not key:
+                continue
+            if not decision and not final_text:
                 continue
 
-            if "✅" in decision:
+            # decisions.csv из sheet import: там уже только принятые правки, колонки решения нет
+            if not decision:
+                new_text = final_text
+            elif "✅" in decision:
                 new_text = suggestion
             elif "✏️" in decision or "✏" in decision:
                 new_text = final_text
