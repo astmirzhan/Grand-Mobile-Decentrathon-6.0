@@ -57,9 +57,9 @@ def detectors():
     return found
 
 
-def run(ctx):
+def run(ctx, dets=None):
     out = []
-    for det in detectors():
+    for det in dets or detectors():
         out.extend(det(ctx))
     return out
 
@@ -192,14 +192,20 @@ BASIC_VARIANTS = [
 ]
 
 
-def run_once(ru, kk, uz, glossary, per_variant, seed):
+def run_once(ru, kk, uz, glossary, per_variant, seed, dets=None, all_variants=None,
+             clean_dets=None, en=None):
+    """One mutation run. `dets` are the detectors under test; `clean_dets` pick the clean
+    strings to mutate (default: the same detectors), so different tools can be compared on
+    exactly the same injected errors."""
     rng = random.Random(seed)
-    base = SimpleNamespace(ru=ru, kk=kk, en={}, uz=uz, glossary=glossary, order=list(ru),
+    base = SimpleNamespace(ru=ru, kk=kk, en=en or {}, uz=uz, glossary=glossary, order=list(ru),
                            descriptions={}, sections={})
-    flagged = {f.key for f in run(base)}
+    flagged = {f.key for f in run(base, clean_dets or dets)}
     clean = [k for k in ru if k in kk and k not in flagged and kk[k].strip() and kk[k] != ru[k]]
     freq = Counter(w.lower() for v in kk.values() for w in kk_lang.WORD_RE.findall(v))
-    variants = KAZAKH_VARIANTS + (BASIC_VARIANTS if len(detectors()) > 1 else [])
+    if all_variants is None:
+        all_variants = len(detectors()) > 1
+    variants = KAZAKH_VARIANTS + (BASIC_VARIANTS if all_variants else [])
 
     # One mutation per key, all injected into one copy of the file (like the seeded set).
     injected, used_keys, used_terms = {}, set(), Counter()
@@ -222,7 +228,7 @@ def run_once(ru, kk, uz, glossary, per_variant, seed):
                 break
 
     found = defaultdict(set)
-    for f in run(SimpleNamespace(**{**vars(base), "kk": mutated})):
+    for f in run(SimpleNamespace(**{**vars(base), "kk": mutated}), dets):
         found[f.key].add(f.issue_type)
 
     rows = defaultdict(lambda: {"type": "", "injected": 0, "found_typed": 0, "found_any": 0})
