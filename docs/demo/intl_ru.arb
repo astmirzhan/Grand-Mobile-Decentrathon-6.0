@@ -1,0 +1,13 @@
+{
+  "@@locale": "ru",
+  "greeting": "Привет, {name}! У тебя {count} монет.",
+  "shopBuy": "Купить",
+  "shopSold": "Продано",
+  "itemsCount": "{n, plural, one {# предмет} few {# предмета} many {# предметов} other {# предмета}}",
+  "familyTitle": "Семья",
+  "levelUp": "Новый уровень: {level}",
+  "settings": "Настройки",
+  "deleteConfirm": "Удалить сохранение? Это нельзя отменить.",
+  "play": "Играть",
+  "questDone": "Задание выполнено"
+}

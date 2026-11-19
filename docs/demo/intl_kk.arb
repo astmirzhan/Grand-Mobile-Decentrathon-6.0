@@ -1,0 +1,13 @@
+{
+  "@@locale": "kk",
+  "greeting": "Сәлем, {name}! Сенде {coins} тиын бар.",
+  "shopBuy": "Сатып алу",
+  "shopSold": "Продано",
+  "itemsCount": "{n, plural, other {# зат}}",
+  "familyTitle": "Жанұя",
+  "levelUp": "Жаңа дeңгей: {level}",
+  "settings": "Параметры",
+  "deleteConfirm": "Сақтауды жою керек пе? Мұны қайтару мүмкін емес.",
+  "play": "Ойнау",
+  "questDone": "Тапсырма орындалды"
+}

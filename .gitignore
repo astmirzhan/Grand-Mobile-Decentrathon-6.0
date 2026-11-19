@@ -4,6 +4,7 @@ out/
 *.arb
 !tests/fixtures/*.arb
 !tests/fixtures/**/*.arb
+!docs/demo/*.arb
 *.tgz
 *.zip
 *.pdf
