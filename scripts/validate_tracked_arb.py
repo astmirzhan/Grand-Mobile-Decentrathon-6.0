@@ -8,7 +8,11 @@ from locqa.validation import validate_files
 
 
 def main():
-    paths = subprocess.check_output(['git', 'ls-files', '--cached', '--others', '--exclude-standard', '--', '*.arb'], text=True).splitlines()
+    # docs/demo holds a pair with deliberate errors for the README demo, so it is not validated here.
+    paths = subprocess.check_output(
+        ['git', 'ls-files', '--cached', '--others', '--exclude-standard', '--', '*.arb', ':(exclude)docs/demo/*'],
+        text=True,
+    ).splitlines()
     checked, failed = 0, False
     for path in sorted(set(paths)):
         target = Path(path)
