@@ -178,6 +178,14 @@ The organizers' ARB files, review CSVs and derived reports are private and git-i
 the synthetic fixtures in `tests/fixtures` and `docs/demo` are tracked. `scripts/package_submission.py` builds a source
 archive and a separate private results archive with checksums, and never commits or pushes anything.
 
+## 👥 Team
+
+Built at Grand Mobile × Decentrathon 6.0 by:
+
+- [@astmirzhan](https://github.com/astmirzhan)
+- [@xJam-byte](https://github.com/xJam-byte)
+- [@birxnm](https://github.com/birxnm)
+
 <div align="center">
 
 **locqa** · built for Grand Mobile × Decentrathon 6.0 · one finding per key, a human on every fix 🛡️
